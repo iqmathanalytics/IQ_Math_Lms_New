@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Auth tech canvas — compositor-friendly (transform/opacity only where possible) */
+@keyframes authGridDrift {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(48px, 48px, 0); }
+}
+
+@keyframes authOrbBlue {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(22px, -16px, 0) scale(1.06); }
+}
+
+@keyframes authOrbGreen {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-18px, 14px, 0) scale(1.05); }
+}
+
+@keyframes authOrbCenter {
+  0%, 100% { transform: translate3d(-50%, -50%, 0) scale(1); opacity: 0.45; }
+  50% { transform: translate3d(-50%, -50%, 0) scale(1.18); opacity: 0.7; }
+}
+
+@keyframes authCircuitFlow {
+  to { stroke-dashoffset: -72; }
+}
+
+@keyframes authNodePulse {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.4; }
+  50% { transform: translate3d(0, -10px, 0) scale(1.35); opacity: 1; }
+}
+
+@keyframes authScan {
+  0%, 100% { transform: translate3d(0, 8vh, 0); opacity: 0.15; }
+  50% { transform: translate3d(0, 78vh, 0); opacity: 0.55; }
+}
+
+@keyframes authSpinSlow {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes authIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes authIconBlink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes authIconSpinSoft {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+}
+
+:root {
+  --iq-primary: #0088C7;
+  --iq-secondary: #8DC63F;
+  --iq-bg: #F5F9FF;
+  --iq-card: #FFFFFF;
+  --iq-text: #1E293B;
+  --iq-text-secondary: #64748B;
+}
+
+/* Soft light academic canvas */
+body {
+  background-color: var(--iq-bg);
+  margin: 0;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--iq-text);
+}
+
+/* Scrollbar Polish */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--iq-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--iq-text-secondary);
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-iqBlue px-4 py-2.5 text-sm font-bold text-white shadow-soft transition-all duration-200 hover:bg-iqBlueDark hover:shadow-lift active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-iqGreen px-4 py-2.5 text-sm font-bold text-white shadow-soft transition-all duration-200 hover:bg-iqGreenDark hover:shadow-lift active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-surface px-4 py-2.5 text-sm font-bold text-slate-500 shadow-sm transition-all duration-200 hover:border-iqBlue/30 hover:bg-iqBlueLight hover:text-iqBlue active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-white shadow-soft transition-all duration-200 hover:bg-slate-900 hover:shadow-lift active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:opacity-100 disabled:shadow-none;
+  }
+
+  .btn-ghost-pill {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs font-bold text-slate-500 shadow-soft backdrop-blur-sm transition-all duration-200 hover:border-iqBlue/40 hover:text-iqBlue hover:shadow-card lg:text-sm;
+  }
+
+  .btn-overlay {
+    @apply rounded-xl border-2 border-white/90 bg-white/10 px-8 py-3 text-sm font-bold tracking-wide text-white backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-iqBlue active:scale-95;
+  }
+
+  .input-shell {
+    @apply flex items-center rounded-xl border border-slate-200/80 bg-surface px-4 py-3.5 shadow-sm transition-all duration-200 focus-within:border-iqBlue/40 focus-within:ring-2 focus-within:ring-iqBlue/20;
+  }
+
+  .input-shell-accent {
+    @apply flex items-center rounded-xl border border-slate-200/80 bg-surface px-4 py-3.5 shadow-sm transition-all duration-200 focus-within:border-iqGreen/50 focus-within:ring-2 focus-within:ring-iqGreen/25;
+  }
+
+  .input-field {
+    @apply flex-1 bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400;
+  }
+
+  .auth-card {
+    @apply relative z-10 overflow-hidden rounded-[24px] border border-white/70 bg-surface/95 shadow-lift backdrop-blur-sm;
+  }
+
+  .auth-canvas {
+    @apply relative flex min-h-screen items-center justify-center overflow-hidden bg-canvas p-4 font-sans;
+  }
+
+  .auth-tech-bg {
+    contain: paint;
+    isolation: isolate;
+  }
+
+  .auth-tech-wash {
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(0, 136, 199, 0.12), transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(141, 198, 63, 0.14), transparent 55%),
+      linear-gradient(160deg, #F5F9FF 0%, #EEF7FC 45%, #F4FAEE 100%);
+  }
+
+  .auth-tech-grid {
+    opacity: 0.32;
+    background-image:
+      linear-gradient(rgba(0, 136, 199, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 136, 199, 0.1) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 32%, transparent 76%);
+    mask-image: radial-gradient(ellipse at center, #000 32%, transparent 76%);
+    will-change: transform;
+    animation: authGridDrift 36s linear infinite;
+  }
+
+  .auth-tech-orb {
+    position: absolute;
+    border-radius: 9999px;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    /* Soft discs via gradient (no live blur filter = cheaper compositing) */
+  }
+
+  .auth-tech-orb--blue {
+    left: -12%;
+    top: -18%;
+    width: 46%;
+    height: 46%;
+    background: radial-gradient(circle, rgba(0, 136, 199, 0.28) 0%, rgba(0, 136, 199, 0.08) 42%, transparent 70%);
+    animation: authOrbBlue 18s ease-in-out infinite;
+  }
+
+  .auth-tech-orb--green {
+    right: -12%;
+    bottom: -16%;
+    width: 48%;
+    height: 48%;
+    background: radial-gradient(circle, rgba(141, 198, 63, 0.3) 0%, rgba(141, 198, 63, 0.1) 42%, transparent 70%);
+    animation: authOrbGreen 20s ease-in-out infinite;
+  }
+
+  .auth-tech-orb--center {
+    left: 50%;
+    top: 42%;
+    width: 16rem;
+    height: 16rem;
+    background: radial-gradient(circle, rgba(0, 136, 199, 0.16) 0%, transparent 68%);
+    animation: authOrbCenter 14s ease-in-out infinite;
+  }
+
+  .auth-tech-circuits {
+    opacity: 0.26;
+  }
+
+  .auth-circuit-path {
+    stroke-dasharray: 10 14;
+    animation: authCircuitFlow 10s linear infinite;
+  }
+
+  .auth-circuit-path--b { animation-duration: 13s; animation-direction: reverse; }
+  .auth-circuit-path--c { stroke-dasharray: 5 10; animation-duration: 8s; opacity: 0.75; }
+  .auth-circuit-path--d { stroke-dasharray: 5 10; animation-duration: 9s; animation-direction: reverse; opacity: 0.8; }
+
+  .auth-tech-node {
+    position: absolute;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-left: -0.25rem;
+    margin-top: -0.25rem;
+    border-radius: 9999px;
+    background: #0088C7;
+    box-shadow: 0 0 10px rgba(0, 136, 199, 0.55);
+    will-change: transform, opacity;
+    animation: authNodePulse 4.2s ease-in-out infinite;
+  }
+
+  .auth-tech-node--green {
+    background: #8DC63F;
+    box-shadow: 0 0 10px rgba(141, 198, 63, 0.55);
+  }
+
+  .auth-tech-scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 136, 199, 0.45), transparent);
+    will-change: transform, opacity;
+    animation: authScan 14s ease-in-out infinite;
+  }
+
+  .auth-choice-card {
+    @apply relative flex flex-1 flex-col items-center gap-3 overflow-hidden rounded-2xl border bg-white/80 px-6 py-9 text-center shadow-soft backdrop-blur-md transition-[border-color,background-color,box-shadow,transform] duration-300 ease-out;
+  }
+
+  .auth-choice-card::before {
+    content: "";
+    position: absolute;
+    inset: -45%;
+    background: conic-gradient(from 180deg, transparent 0deg, rgba(0, 136, 199, 0.2) 60deg, transparent 120deg);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    animation: authSpinSlow 10s linear infinite;
+    animation-play-state: paused;
+  }
+
+  .auth-choice-card:hover::before {
+    opacity: 1;
+    animation-play-state: running;
+  }
+
+  .auth-choice-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .auth-tech-grid,
+    .auth-tech-orb,
+    .auth-circuit-path,
+    .auth-tech-node,
+    .auth-tech-scan,
+    .auth-choice-card::before {
+      animation: none !important;
+    }
+  }
+
+  .kpi-card {
+    @apply flex items-center gap-5 rounded-2xl border border-slate-100 bg-surface p-6 shadow-soft transition-all duration-300;
+  }
+
+  .course-card-shell {
+    @apply relative overflow-hidden rounded-2xl border border-slate-100 bg-surface shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lift;
+  }
+}

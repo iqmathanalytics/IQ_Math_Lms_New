@@ -1,0 +1,265 @@
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Text, JSON, LargeBinary, UniqueConstraint
+from sqlalchemy.orm import relationship
+from database import Base
+from datetime import datetime
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True)
+    phone_number = Column(String(32), nullable=True) # <--- ADD THIS LINE
+    full_name = Column(String(255))
+    hashed_password = Column(String(255))
+    role = Column(String(32)) 
+    is_active = Column(Boolean, default=True) # If False, user is "banned/deleted" but data exists
+    created_at = Column(DateTime, default=datetime.utcnow) # Know exactly when they joined
+    last_login = Column(DateTime, nullable=True)
+    # ... rest of the relationships remain exactly the same ...
+    enrollments = relationship("Enrollment", back_populates="student")
+    submissions = relationship("Submission", back_populates="student")
+    test_results = relationship("TestResult", back_populates="student")
+    
+    live_sessions = relationship("LiveSession", back_populates="instructor")
+class Course(Base):
+    __tablename__ = "courses"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255))
+    description = Column(String(1000))
+    price = Column(Integer)
+    image_url = Column(String(1000), nullable=True)
+    is_published = Column(Boolean, default=False)
+    instructor_id = Column(Integer, ForeignKey("users.id"))
+    course_type = Column(String(32), default="standard") # 'standard' or 'coding'
+    language = Column(String(64), nullable=True) # e.g., 'python', 'javascript' (for compiler)
+    # Certificate ID template: {cert_prefix}-{cert_code}-{padded seq}
+    cert_prefix = Column(String(8), default="IQ")
+    cert_code = Column(String(3), nullable=True)
+    cert_number_width = Column(Integer, default=3)
+    cert_seq = Column(Integer, default=0)
+    modules = relationship("Module", back_populates="course")
+    enrollments = relationship("Enrollment", back_populates="course")
+    challenges = relationship("CourseChallenge", back_populates="course")
+    
+class Module(Base):
+    __tablename__ = "modules"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255))
+    order = Column(Integer)
+    course_id = Column(Integer, ForeignKey("courses.id"))
+    
+    course = relationship("Course", back_populates="modules")
+    items = relationship("ContentItem", back_populates="module")
+
+class ContentItem(Base):
+    __tablename__ = "content_items"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255))
+    type = Column(String(64)) 
+    content = Column(String(1000), nullable=True) 
+    duration = Column(Integer, nullable=True)
+    is_mandatory = Column(Boolean, default=False)
+    order = Column(Integer)
+    module_id = Column(Integer, ForeignKey("modules.id"))
+    
+    instructions = Column(Text, nullable=True) 
+    test_config = Column(Text, nullable=True) 
+    # Optional JSON string list of resource URLs for video lessons.
+    resource_links = Column(Text, nullable=True)
+    
+    # ✅ NEW FIELDS FOR LIVE TEST SCHEDULING
+    start_time = Column(DateTime, nullable=True) # e.g., 2023-10-27 20:00:00
+    end_time = Column(DateTime, nullable=True)   # e.g., 2023-10-27 20:30:00
+
+    module = relationship("Module", back_populates="items")
+
+class Enrollment(Base):
+    __tablename__ = "enrollments"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    course_id = Column(Integer, ForeignKey("courses.id"))
+    enrolled_at = Column(DateTime, default=datetime.utcnow)
+    
+    enrollment_type = Column(String(32), default="paid") 
+    expiry_date = Column(DateTime, nullable=True)    
+    
+    student = relationship("User", back_populates="enrollments") 
+    course = relationship("Course", back_populates="enrollments") 
+
+class Submission(Base):
+    __tablename__ = "submissions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    content_item_id = Column(Integer, ForeignKey("content_items.id"))
+    drive_link = Column(String(1000))
+    status = Column(String(32), default="Pending")
+    submitted_at = Column(DateTime, default=datetime.utcnow)
+    
+    student = relationship("User", back_populates="submissions")
+    assignment = relationship("ContentItem")
+
+# --- CODE ARENA MODELS ---
+class CodeTest(Base):
+    __tablename__ = "code_tests"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255))
+    pass_key = Column(String(128))
+    time_limit = Column(Integer) # In minutes
+    instructor_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    problems = relationship("Problem", back_populates="test")
+    results = relationship("TestResult", back_populates="test")
+
+class Problem(Base):
+    __tablename__ = "problems"
+    id = Column(Integer, primary_key=True, index=True)
+    test_id = Column(Integer, ForeignKey("code_tests.id"))
+    title = Column(String(255))
+    description = Column(Text)
+    difficulty = Column(String(32))
+    test_cases = Column(Text) # Stored as JSON string
+    
+    test = relationship("CodeTest", back_populates="problems")
+
+class TestResult(Base):
+    __tablename__ = "test_results"
+    id = Column(Integer, primary_key=True, index=True)
+    test_id = Column(Integer, ForeignKey("code_tests.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    score = Column(Integer)
+    problems_solved = Column(Integer)
+    time_taken = Column(String(64)) # "45 mins"
+    submitted_at = Column(DateTime, default=datetime.utcnow)
+    
+    student = relationship("User", back_populates="test_results")
+    test = relationship("CodeTest", back_populates="results")
+
+# ✅ NEW: LIVE SESSION MODEL
+class LiveSession(Base):
+    __tablename__ = "live_sessions"
+    id = Column(Integer, primary_key=True, index=True)
+    instructor_id = Column(Integer, ForeignKey("users.id"))
+    youtube_url = Column(String(1000))
+    topic = Column(String(255))
+    is_active = Column(Boolean, default=True)
+    started_at = Column(DateTime, default=datetime.utcnow)
+
+    instructor = relationship("User", back_populates="live_sessions")
+    
+class CourseChallenge(Base):
+    __tablename__ = "course_challenges"
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id"))
+    title = Column(String(255))
+    description = Column(Text)
+    difficulty = Column(String(32)) # "Easy", "Medium", "Hard"
+    test_cases = Column(Text) # JSON String: [{"input": "...", "output": "...", "hidden": false}]
+    function_name = Column(String(128), default="solution") # For function wrapping if needed
+    
+    course = relationship("Course", back_populates="challenges")
+    progress = relationship("ChallengeProgress", back_populates="challenge")
+
+class ChallengeProgress(Base):
+    __tablename__ = "challenge_progress"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    challenge_id = Column(Integer, ForeignKey("course_challenges.id"))
+    is_solved = Column(Boolean, default=False)
+    solved_at = Column(DateTime, default=datetime.utcnow)
+    user_code = Column(Text, nullable=True) # Save their last successful code
+
+    challenge = relationship("CourseChallenge", back_populates="progress")    
+    
+# ... existing code ...
+
+# ✅ NEW: TRACKS GREEN TICKS FOR MODULES
+class LessonProgress(Base):
+    __tablename__ = "lesson_progress"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    content_item_id = Column(Integer, ForeignKey("content_items.id"))
+    is_completed = Column(Boolean, default=True)
+    completed_at = Column(DateTime, default=datetime.utcnow)
+    
+    # ✅ NEW FIELDS FOR PROCTORING
+    violation_count = Column(Integer, default=0) # Tracks tab switches
+    is_terminated = Column(Boolean, default=False) # True if kicked out
+    
+    user = relationship("User")
+    content_item = relationship("ContentItem")
+
+# ✅ NEW: STORES GENERATED CERTIFICATES
+class UserCertificate(Base):
+    __tablename__ = "user_certificates"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    course_id = Column(Integer, ForeignKey("courses.id"))
+    certificate_id = Column(String(64), unique=True)
+    issued_at = Column(DateTime, default=datetime.utcnow)
+    pdf_url = Column(String(1000), nullable=True)
+
+    user = relationship("User")
+    course = relationship("Course")
+
+
+class CourseAssessment(Base):
+    """One project submission per student per course; unlocks certificate claim."""
+    __tablename__ = "course_assessments"
+    __table_args__ = (UniqueConstraint("user_id", "course_id", name="uq_course_assessment_user_course"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    link = Column(String(1000), nullable=True)
+    file_name = Column(String(255), nullable=True)
+    file_data = Column(LargeBinary, nullable=True)
+    submitted_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
+    course = relationship("Course")
+
+
+class PromoCode(Base):
+    __tablename__ = "promo_codes"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(64), unique=True, index=True, nullable=False)
+    discount_type = Column(String(16), nullable=False)  # percent | fixed
+    discount_value = Column(Integer, nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)  # null = all courses
+    max_uses = Column(Integer, default=0)  # 0 = unlimited
+    used_count = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    valid_until = Column(DateTime, nullable=True)
+    note = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    course = relationship("Course")
+    redemptions = relationship("PromoRedemption", back_populates="promo", cascade="all, delete-orphan")
+
+
+class PromoRedemption(Base):
+    __tablename__ = "promo_redemptions"
+    id = Column(Integer, primary_key=True, index=True)
+    promo_id = Column(Integer, ForeignKey("promo_codes.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    original_price = Column(Integer, nullable=False)
+    final_price = Column(Integer, nullable=False)
+    order_id = Column(String(128), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    promo = relationship("PromoCode", back_populates="redemptions")
+    user = relationship("User")
+    course = relationship("Course")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String(255))
+    message = Column(String(2000))
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", backref="notifications")
