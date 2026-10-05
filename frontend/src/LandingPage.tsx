@@ -255,8 +255,9 @@ const LandingPage = () => {
               alt="Live Instructor"
               widthHint={900}
               priority
-              className="w-full h-[250px] md:h-[350px] lg:h-[400px] object-cover opacity-90"
-              skeletonClassName="w-full h-[250px] md:h-[350px] lg:h-[400px]"
+              fit="cover"
+              className="h-[250px] w-full opacity-90 md:h-[350px] lg:h-[400px]"
+              skeletonClassName="h-[250px] w-full md:h-[350px] lg:h-[400px]"
             />
             <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-900"><Mic size={18} /></div>
@@ -280,8 +281,9 @@ const LandingPage = () => {
                     alt={currentReview.name}
                     widthHint={480}
                     priority
-                    className="w-full h-full object-cover object-top"
-                    skeletonClassName="w-full h-full absolute inset-0"
+                    fit="cover"
+                    className="h-full w-full object-top"
+                    skeletonClassName="absolute inset-0 h-full w-full"
                   />
                 </motion.div>
               </AnimatePresence>

@@ -130,7 +130,7 @@ const CourseList = () => {
                 <div key={course.id} style={{ background: "white", borderRadius: "16px", border: "1px solid #e2e8f0", overflow: "hidden", cursor: "pointer", transition: "transform 0.2s", position: "relative" }} onClick={() => navigate(`/dashboard/course/${course.id}/builder`)}>
                     <div style={{ height: "160px", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
                         {course.image_url ? (
-                          <FastImage src={course.image_url} alt={course.title} widthHint={480} className="w-full h-full object-cover absolute inset-0" skeletonClassName="w-full h-full absolute inset-0" />
+                          <FastImage src={course.image_url} alt={course.title} widthHint={480} fit="contain" className="h-full w-full" skeletonClassName="h-full w-full" />
                         ) : (
                           <FileText size={48} color="#cbd5e1" />
                         )}

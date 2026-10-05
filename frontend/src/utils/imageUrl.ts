@@ -15,26 +15,29 @@ type OptimizeOpts = {
   width?: number;
   /** 1–100 style quality hint for CDNs that support it */
   quality?: number;
+  /** Prefer contain so thumbnails are not cropped by the CDN */
+  fit?: "contain" | "cover" | "max";
 };
 
 /**
- * Shrink remote CDN URLs when possible so cards don't download 1000–2000px originals.
- * Unknown hosts are returned unchanged.
+ * Shrink remote CDN URLs when the host supports it.
+ * (postimg / ibb have no public resize API — callers should use object-contain + prefetch.)
  */
 export function optimizeImageUrl(url?: string | null, opts: OptimizeOpts = {}): string {
   const resolved = resolveImageUrl(url);
   if (!resolved) return "";
 
   const width = opts.width ?? 640;
-  const quality = opts.quality ?? 70;
+  const quality = opts.quality ?? 72;
+  const fit = opts.fit ?? "contain";
 
   try {
     const u = new URL(resolved);
 
-    // Unsplash
+    // Unsplash — avoid fit=crop (that was cutting thumbs)
     if (u.hostname.includes("images.unsplash.com") || u.hostname.includes("unsplash.com")) {
       u.searchParams.set("auto", "format");
-      u.searchParams.set("fit", "crop");
+      u.searchParams.set("fit", fit === "cover" ? "crop" : "max");
       u.searchParams.set("w", String(width));
       u.searchParams.set("q", String(quality));
       return u.toString();
@@ -46,8 +49,7 @@ export function optimizeImageUrl(url?: string | null, opts: OptimizeOpts = {}): 
       return u.toString();
     }
 
-    // postimg / i.postimg — no resize API; return as-is
-    // Google Drive thumbnail rewrite for common view links
+    // Google Drive → native thumbnail endpoint
     if (u.hostname.includes("drive.google.com")) {
       const fileMatch = u.pathname.match(/\/d\/([^/]+)/) || u.searchParams.get("id");
       const id = typeof fileMatch === "string" ? fileMatch : fileMatch?.[1];
@@ -76,12 +78,16 @@ export function isImageWarmed(src: string) {
 /** Prefetch a list of image URLs in the background (low priority). */
 export function prefetchImages(urls: (string | null | undefined)[], width = 480) {
   if (typeof window === "undefined") return;
-  urls.forEach((raw) => {
-    const src = optimizeImageUrl(raw, { width });
+  // Stagger slightly so we don't saturate bandwidth on first paint
+  urls.forEach((raw, index) => {
+    const src = optimizeImageUrl(raw, { width, fit: "contain" });
     if (!src || isImageWarmed(src)) return;
-    const img = new Image();
-    img.decoding = "async";
-    img.onload = () => markImageWarmed(src);
-    img.src = src;
+    window.setTimeout(() => {
+      if (isImageWarmed(src)) return;
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = () => markImageWarmed(src);
+      img.src = src;
+    }, index * 40);
   });
 }

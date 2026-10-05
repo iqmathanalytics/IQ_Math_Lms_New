@@ -106,7 +106,8 @@ const CourseCard = ({ course, type, navigate, handleFreeEnroll, openEnrollModal,
                         src={course.image_url}
                         alt={course.title}
                         widthHint={480}
-                        className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        fit="contain"
+                        className="h-full w-full transition-transform duration-500 group-hover:scale-[1.03]"
                         skeletonClassName="h-44 w-full"
                     />
                 ) : (
@@ -205,6 +206,7 @@ const StudentDashboard = () => {
     const [highlightCourseId, setHighlightCourseId] = useState<number | null>(
         deepLinkCourseId ? Number(deepLinkCourseId) : null
     );
+    const shareEnrollOpened = useRef(false);
 
     // ✅ NEW: Sub-tab for My Learning (Standard vs Coding)
     const [learningSubTab, setLearningSubTab] = useState("standard");
@@ -491,6 +493,17 @@ const StudentDashboard = () => {
         if (!highlightCourseId || activeTab !== "explore" || loading) return;
         const el = document.getElementById(`course-card-${highlightCourseId}`);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // From shared link: open unlock/enroll once so they can start learning
+        if (shareEnrollOpened.current) return;
+        const target = availableCourses.find((c) => c.id === highlightCourseId);
+        if (target) {
+            shareEnrollOpened.current = true;
+            setSelectedCourse(target);
+            setPromoCode("");
+            setPromoInfo(null);
+            setShowModal(true);
+        }
     }, [highlightCourseId, activeTab, loading, availableCourses]);
 
     const fetchCourseProgress = async (courseId: number) => {
@@ -1264,7 +1277,7 @@ const StudentDashboard = () => {
                                             >
                                                 <div className="h-32 w-full overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-iqBlueLight/50 md:w-1/3">
                                                     {course.image_url ? (
-                                                        <FastImage src={course.image_url} alt="" widthHint={320} className="h-full w-full object-cover" skeletonClassName="h-full w-full" />
+                                                        <FastImage src={course.image_url} alt="" widthHint={360} fit="contain" className="h-full w-full" skeletonClassName="h-full w-full" />
                                                     ) : (
                                                         <div className="flex h-full items-center justify-center text-slate-300"><BookOpen /></div>
                                                     )}
