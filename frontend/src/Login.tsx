@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import API_BASE_URL from './config';
 import {
   User, Lock, Mail, ArrowRight, CheckCircle,
-  ShieldCheck, LogIn, UserPlus, Eye, EyeOff,
+  LogIn, UserPlus, Eye, EyeOff,
   Smartphone, MessageSquare, AlertCircle, X
 } from "lucide-react";
 import BrandLogo from "./components/BrandLogo";
@@ -457,17 +457,7 @@ const Login = () => {
         </>
       )}
 
-      <motion.button
-        onClick={() => navigate("/admin-login")}
-        className="btn-ghost-pill absolute top-4 right-4 z-40 lg:top-6 lg:right-6"
-        initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35, duration: 0.5, ease: easeOut }}
-        whileHover={prefersReducedMotion ? undefined : { scale: 1.04, y: -1 }}
-        whileTap={{ scale: 0.97 }}
-      >
-        <ShieldCheck size={16} className="lg:h-[18px] lg:w-[18px]" /> Admin Access
-      </motion.button>
+      {/* Admin Access entry hidden from student login UI */}
 
       <AnimatePresence mode="wait">
         {!authPanel && (

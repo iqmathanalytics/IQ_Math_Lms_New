@@ -191,8 +191,8 @@ const LandingPage = () => {
                     <div className="h-1 w-32 bg-white/50 mt-6 rounded-full" />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center">
-                    <BrandLogo size="xl" showTagline className="drop-shadow-lg" />
+                  <div className="flex flex-col items-center rounded-3xl bg-white/95 px-10 py-8 shadow-2xl ring-1 ring-black/5">
+                    <BrandLogo size="xl" showTagline />
                   </div>
                 )}
               </motion.div>

@@ -58,8 +58,8 @@ const DashboardLayout = () => {
         {/* LOGO SECTION */}
         <div className={`p-6 border-b border-slate-200 flex items-center gap-2 ${collapsed ? "lg:justify-center lg:px-2" : "justify-between"}`}>
           {(!collapsed || mobileMenuOpen) && (
-            <div>
-              <BrandLogo size="md" />
+            <div className="min-w-0 flex-1">
+              <BrandLogo size="md" className="max-w-full" />
               <span className="text-[11px] text-iqGreen font-bold uppercase tracking-widest block mt-1">
                 Instructor
               </span>

@@ -4,7 +4,7 @@ from PIL import Image
 
 src = Path(
     r"C:\Users\jagat\.cursor\projects\d-IQ-Math-New-iqmathlms-platform-main-1-iqmathlms-platform-main\assets"
-    r"\c__Users_jagat_AppData_Roaming_Cursor_User_workspaceStorage_ff0a17dbaf85507d425d7851a66d82e0_images_IQmath_Technologies_Logo-506e9b08-7528-4640-ada0-b3d8e3e27dfb.jpg"
+    r"\c__Users_jagat_AppData_Roaming_Cursor_User_workspaceStorage_ff0a17dbaf85507d425d7851a66d82e0_images_IQMATH_LOGO_CROPED-42213937-322e-44b2-99ae-fd347e104ae7.png"
 )
 out = Path(__file__).resolve().parents[1] / "public" / "iqmath-logo.png"
 jpg_out = Path(__file__).resolve().parents[1] / "public" / "iqmath-logo-dark.jpg"
