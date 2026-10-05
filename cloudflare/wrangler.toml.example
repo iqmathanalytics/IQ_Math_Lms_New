@@ -1,0 +1,20 @@
+# Copy to wrangler.toml (do not commit secrets) if you prefer CLI deploy:
+#   cd cloudflare
+#   cp wrangler.toml.example wrangler.toml
+#   npx wrangler deploy
+#
+# Then attach route www.iqmath.in/lms* in the dashboard (or via routes below).
+
+name = "iqmath-lms-path"
+main = "lms-path-worker.js"
+compatibility_date = "2026-03-01"
+
+# Set after first Pages deploy:
+# [vars]
+# LMS_PAGES_ORIGIN = "https://iqmath-lms.pages.dev"
+
+# Optional: bind routes via wrangler (zone_name must match your Cloudflare zone)
+# routes = [
+#   { pattern = "www.iqmath.in/lms*", zone_name = "iqmath.in" },
+#   { pattern = "iqmath.in/lms*", zone_name = "iqmath.in" },
+# ]

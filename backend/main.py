@@ -132,14 +132,21 @@ async def on_startup():
 async def on_shutdown():
     token_manager.stop()
 
-# 2. CONFIG: CORS POLICY (Restricted for Security in Prod)
+# 2. CONFIG: CORS POLICY
+# Production: set CORS_ORIGINS=https://www.iqmath.in,https://iqmath.in
+# Local/dev: omit CORS_ORIGINS (defaults to "*")
+_cors_raw = os.getenv("CORS_ORIGINS", "").strip()
+CORS_ORIGINS = (
+    [o.strip() for o in _cors_raw.split(",") if o.strip()]
+    if _cors_raw
+    else ["*"]
+)
 app.add_middleware(
     CORSMiddleware,
-    # 🔒 SECURITY: In production, change "*" to ["https://your-frontend-domain.com"]
-    allow_origins=["*"], 
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"], 
-    allow_headers=["*"], 
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- 🔐 SECURITY & AUTH CONFIG ---
@@ -2738,7 +2745,14 @@ async def generate_course_description_pdf(course_id: int, db: AsyncSession = Dep
     )
     
 @app.get("/")
-def read_root(): return {"status": "online", "message": "iQmath Military Grade API Active 🟢"}
+def read_root():
+    return {"status": "online", "message": "iQmath Military Grade API Active 🟢"}
+
+
+@app.get("/health")
+def health_check():
+    """Render / load-balancer health probe (no auth, no DB)."""
+    return {"status": "ok"}
 
 # --- IQNex feature routes (assessments, cert admin, promos, public share) ---
 _iqnex_router = build_iqnex_router(

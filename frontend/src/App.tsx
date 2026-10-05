@@ -200,9 +200,12 @@ const CourseList = () => {
   );
 };
 
+/** Vite BASE_URL is '/' locally and '/lms/' in production builds. */
+const routerBasename = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") || "/";
+
 function App() {
   return (
-    <Router>
+    <Router basename={routerBasename}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />

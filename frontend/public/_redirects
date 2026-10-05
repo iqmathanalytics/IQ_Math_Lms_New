@@ -1,1 +1,4 @@
-/* /index.html 200
+# Cloudflare Pages SPA fallback (Pages project root).
+# The /lms path is mounted by the Cloudflare Worker on www.iqmath.in;
+# this file keeps deep links working on *.pages.dev and preview URLs.
+/*    /index.html   200
