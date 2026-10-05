@@ -27,6 +27,7 @@ import FastImage from "./components/FastImage";
 import { FallbackRoute, ProtectedRoute, PublicOnlyRoute } from "./components/AuthRedirect";
 import { authHeaders, clearSession, getValidSession } from "./utils/session";
 import { prefetchImages } from "./utils/imageUrl";
+import { absoluteAppUrl, withBasePath } from "./utils/appBase";
 // --- Modified CourseList Component ---
 const CourseList = () => {
   const [courses, setCourses] = useState([]);
@@ -52,7 +53,7 @@ const CourseList = () => {
         setCourses(res.data);
         prefetchImages((res.data || []).map((c: any) => c.image_url), 480);
       } catch (err: any) {
-        if (err.response?.status === 401) { clearSession(); window.location.href = "/admin-login"; }
+        if (err.response?.status === 401) { clearSession(); window.location.href = withBasePath("/admin-login"); }
       } finally { setLoading(false); }
     };
     fetchCourses();
@@ -60,7 +61,7 @@ const CourseList = () => {
 
   const handleShareCourse = async (e: React.MouseEvent, course: any) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/share/courses/${course.id}`;
+    const url = absoluteAppUrl(`/share/courses/${course.id}`);
     if (!course.is_published) {
       triggerToast("Link ready, but course is unpublished (public page returns 404 until published).", "error");
     }
@@ -144,7 +145,7 @@ const CourseList = () => {
                         </div>
                         <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
                         <button
-                            onClick={(e) => { e.stopPropagation(); window.open(`/share/courses/${course.id}`, "_blank"); }}
+                            onClick={(e) => { e.stopPropagation(); window.open(withBasePath(`/share/courses/${course.id}`), "_blank"); }}
                             style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "8px", padding: "8px", cursor: "pointer", color: "#0088C7" }}
                             title="Preview share"
                         >

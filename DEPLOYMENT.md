@@ -143,7 +143,9 @@ Do **not** replace the marketing site custom domain. Attach a Worker only on `/l
 | Route |
 |-------|
 | `www.iqmath.in/lms*` |
+| `www.iqmath.in/share*` (redirects old `/share/...` links into `/lms/share/...`) |
 | `iqmath.in/lms*` (optional, if apex should also serve LMS) |
+| `iqmath.in/share*` (optional) |
 
 5. Deploy the Worker.
 

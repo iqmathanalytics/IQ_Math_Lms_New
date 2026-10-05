@@ -5,15 +5,18 @@
  * 1. Workers & Pages → Create Worker → paste this file
  * 2. Settings → Variables → LMS_PAGES_ORIGIN =
  *      https://<your-pages-project>.pages.dev   (no trailing slash)
- * 3. Triggers → Add route:
+ * 3. Triggers → Add routes:
  *      www.iqmath.in/lms*
- *      (also add iqmath.in/lms* if apex should serve LMS)
+ *      www.iqmath.in/share*          (redirects old share links into /lms)
+ *      iqmath.in/lms*                (optional)
+ *      iqmath.in/share*              (optional)
  *
  * Behaviour:
  * - /lms and /lms/ → Pages /
  * - /lms/login → Pages /login (SPA: falls back to index.html on 404)
  * - /lms/assets/... → Pages /assets/...
- * - Everything else on www is untouched (this Worker only runs on /lms* routes)
+ * - /share/courses/... → 301 → /lms/share/courses/...
+ * - Everything else on www is untouched
  */
 
 const LMS_PREFIX = "/lms";
@@ -87,6 +90,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Old share links without /lms → permanent redirect into the LMS app
+    if (url.pathname === "/share" || url.pathname.startsWith("/share/")) {
+      const dest = new URL(`${LMS_PREFIX}${url.pathname}${url.search}`, url.origin);
+      return Response.redirect(dest.toString(), 301);
+    }
+
     if (url.pathname === LMS_PREFIX || url.pathname.startsWith(`${LMS_PREFIX}/`)) {
       const path = stripLmsPrefix(url.pathname);
       try {
@@ -102,7 +111,7 @@ export default {
       }
     }
 
-    // Safety: if route is broader than /lms*, pass through to origin
+    // Safety: if route is broader than /lms*|/share*, pass through to origin
     return fetch(request);
   },
 };

@@ -1,53 +1,39 @@
 import React from "react";
+import { publicAsset } from "../utils/appBase";
 
 interface BrandLogoProps {
     size?: "sm" | "md" | "lg" | "xl";
-    /** Optional green “Technologies” line under the wordmark. */
+    /** Logo asset already includes “Technologies”; kept for call-site compatibility. */
     showTagline?: boolean;
-    /** Kept for compatibility; text logo does not use image assets. */
+    /** Use the higher-resolution logo asset when available. */
     hiRes?: boolean;
     className?: string;
 }
 
-const sizeClasses = {
-    sm: "text-lg",
-    md: "text-2xl",
-    lg: "text-4xl",
-    xl: "text-5xl sm:text-6xl",
-} as const;
-
-const taglineClasses = {
-    sm: "text-[0.55rem]",
-    md: "text-[0.65rem]",
-    lg: "text-sm",
-    xl: "text-base sm:text-lg",
+const heightClasses = {
+    sm: "h-7",
+    md: "h-10",
+    lg: "h-14",
+    xl: "h-16 sm:h-[4.75rem]",
 } as const;
 
 /**
- * Site wordmark: IQ (green) + Math (blue). No image assets.
+ * IQMath brand mark (image). Transparent PNG works on light and dark surfaces.
  */
 const BrandLogo: React.FC<BrandLogoProps> = ({
     size = "md",
-    showTagline = false,
+    hiRes = false,
     className = "",
 }) => {
+    const src = publicAsset(hiRes ? "iqmath-logo-4k.png" : "iqmath-logo.png");
+
     return (
-        <div className={`flex flex-col items-start leading-none ${className}`}>
-            <span
-                className={`font-extrabold tracking-tight ${sizeClasses[size]}`}
-                aria-label="IQ Math"
-            >
-                <span className="text-iqGreen">IQ</span>
-                <span className="text-iqBlue"> Math</span>
-            </span>
-            {showTagline && (
-                <span
-                    className={`mt-1 font-semibold tracking-[0.18em] text-iqGreen ${taglineClasses[size]}`}
-                >
-                    Technologies
-                </span>
-            )}
-        </div>
+        <img
+            src={src}
+            alt="IQMath Technologies"
+            className={`w-auto object-contain object-left ${heightClasses[size]} ${className}`}
+            draggable={false}
+        />
     );
 };
 

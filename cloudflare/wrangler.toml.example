@@ -16,5 +16,7 @@ compatibility_date = "2026-03-01"
 # Optional: bind routes via wrangler (zone_name must match your Cloudflare zone)
 # routes = [
 #   { pattern = "www.iqmath.in/lms*", zone_name = "iqmath.in" },
+#   { pattern = "www.iqmath.in/share*", zone_name = "iqmath.in" },
 #   { pattern = "iqmath.in/lms*", zone_name = "iqmath.in" },
+#   { pattern = "iqmath.in/share*", zone_name = "iqmath.in" },
 # ]
