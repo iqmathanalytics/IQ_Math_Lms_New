@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlalchemy import delete, select
@@ -60,8 +61,16 @@ def build_iqnex_router(
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1")
 
-    ASSESSMENT_DIR = os.path.join(os.path.dirname(__file__), "assessment_uploads")
-    os.makedirs(ASSESSMENT_DIR, exist_ok=True)
+    # Writable on Render free tier; survives process restarts within the same instance
+    ASSESSMENT_DIR = os.getenv(
+        "ASSESSMENT_UPLOAD_DIR",
+        os.path.join(tempfile.gettempdir(), "iqmath_assessment_uploads"),
+    )
+    try:
+        os.makedirs(ASSESSMENT_DIR, exist_ok=True)
+    except OSError:
+        ASSESSMENT_DIR = os.path.join(os.path.dirname(__file__), "assessment_uploads")
+        os.makedirs(ASSESSMENT_DIR, exist_ok=True)
     ALLOWED_EXT = {".pdf", ".zip", ".doc", ".docx", ".ppt", ".pptx", ".png", ".jpg", ".jpeg", ".txt"}
     MAX_BYTES = 20 * 1024 * 1024
 
@@ -368,18 +377,32 @@ def build_iqnex_router(
                 )
 
         link_val = (link or "").strip()
-        file_bytes = None
         stored_name = None
         if file and file.filename:
             ext = os.path.splitext(file.filename)[1].lower()
             if ext not in ALLOWED_EXT:
-                raise HTTPException(status_code=400, detail="Unsupported file type")
-            file_bytes = await file.read()
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_EXT))}",
+                )
+            try:
+                file_bytes = await file.read()
+            except Exception as exc:
+                raise HTTPException(status_code=400, detail="Could not read uploaded file") from exc
+            if not file_bytes:
+                raise HTTPException(status_code=400, detail="Uploaded file is empty")
             if len(file_bytes) > MAX_BYTES:
                 raise HTTPException(status_code=400, detail="File exceeds 20 MB limit")
             stored_name = f"{current_user.id}_{course_id}_{int(time.time())}{ext}"
-            with open(os.path.join(ASSESSMENT_DIR, stored_name), "wb") as f:
-                f.write(file_bytes)
+            dest = os.path.join(ASSESSMENT_DIR, stored_name)
+            try:
+                with open(dest, "wb") as f:
+                    f.write(file_bytes)
+            except OSError as exc:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Could not save assessment file on server. Please try again or submit a link.",
+                ) from exc
 
         if link_val and not (link_val.startswith("http://") or link_val.startswith("https://")):
             raise HTTPException(status_code=400, detail="Link must start with http:// or https://")
@@ -390,41 +413,50 @@ def build_iqnex_router(
                 detail="Upload the assessment file or project link before the certificate is issued.",
             )
 
-        res = await db.execute(
-            select(models.CourseAssessment).where(
-                models.CourseAssessment.user_id == current_user.id,
-                models.CourseAssessment.course_id == course_id,
+        try:
+            res = await db.execute(
+                select(models.CourseAssessment).where(
+                    models.CourseAssessment.user_id == current_user.id,
+                    models.CourseAssessment.course_id == course_id,
+                )
             )
-        )
-        row = res.scalars().first()
-        if row:
-            if link_val:
-                row.link = link_val
-            if stored_name:
-                # remove old file if present
-                if row.file_name:
-                    old_path = os.path.join(ASSESSMENT_DIR, row.file_name)
-                    if os.path.isfile(old_path):
-                        try:
-                            os.remove(old_path)
-                        except OSError:
-                            pass
-                row.file_name = stored_name
-                row.file_data = file_bytes
-            row.submitted_at = datetime.utcnow()
-        else:
-            row = models.CourseAssessment(
-                user_id=current_user.id,
-                course_id=course_id,
-                link=link_val or None,
-                file_name=stored_name,
-                file_data=file_bytes,
-                submitted_at=datetime.utcnow(),
-            )
-            db.add(row)
-        await db.commit()
-        await db.refresh(row)
-        return _assessment_payload(row)
+            row = res.scalars().first()
+            if row:
+                if link_val:
+                    row.link = link_val
+                if stored_name:
+                    if row.file_name:
+                        old_path = os.path.join(ASSESSMENT_DIR, row.file_name)
+                        if os.path.isfile(old_path):
+                            try:
+                                os.remove(old_path)
+                            except OSError:
+                                pass
+                    row.file_name = stored_name
+                    # Do NOT store BLOB in TiDB — disk is source of truth (avoids 500 / packet errors)
+                    row.file_data = None
+                row.submitted_at = datetime.utcnow()
+            else:
+                row = models.CourseAssessment(
+                    user_id=current_user.id,
+                    course_id=course_id,
+                    link=link_val or None,
+                    file_name=stored_name,
+                    file_data=None,
+                    submitted_at=datetime.utcnow(),
+                )
+                db.add(row)
+            await db.commit()
+            await db.refresh(row)
+            return _assessment_payload(row)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            await db.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to save assessment. Please try again with a smaller file or a project link.",
+            ) from exc
 
     @router.get("/instructor/courses/{course_id}/assessments")
     async def list_course_assessments(

@@ -391,7 +391,11 @@ const CodingPlayer = ({ course, token }: { course: any, token: string }) => {
             setAssessmentFile(null);
             triggerToast("Assessment submitted!", "success");
         } catch (err: any) {
-            triggerToast(err?.response?.data?.detail || "Assessment submit failed.", "error");
+            const detail = err?.response?.data?.detail;
+            const msg = Array.isArray(detail)
+                ? detail.map((d: any) => d?.msg || String(d)).join("; ")
+                : (detail || err?.message || "Assessment submit failed.");
+            triggerToast(msg, "error");
         } finally {
             setAssessmentUploading(false);
         }
@@ -1457,16 +1461,15 @@ const CoursePlayer = () => {
 
     const plyrOptions = useMemo(() => ({
         controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
-        // Regular youtube.com host is faster than nocookie; Plyr chrome/frame unchanged
         youtube: {
-            noCookie: false,
+            noCookie: true,
             rel: 0,
             showinfo: 0,
             iv_load_policy: 3,
             modestbranding: 1,
             playsinline: 1,
         },
-        preload: "metadata" as const,
+        preload: "none" as const,
     }), []);
 
     const handleAssignmentUpload = async () => {
@@ -1588,7 +1591,11 @@ const CoursePlayer = () => {
             triggerToast("Assessment submitted!", "success");
             setRefreshTrigger((prev) => prev + 1);
         } catch (err: any) {
-            triggerToast(err?.response?.data?.detail || "Assessment submit failed.", "error");
+            const detail = err?.response?.data?.detail;
+            const msg = Array.isArray(detail)
+                ? detail.map((d: any) => d?.msg || String(d)).join("; ")
+                : (detail || err?.message || "Assessment submit failed.");
+            triggerToast(msg, "error");
         } finally {
             setAssessmentUploading(false);
         }

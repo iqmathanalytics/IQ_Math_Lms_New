@@ -139,15 +139,14 @@ _cors_raw = os.getenv("CORS_ORIGINS", "").strip()
 CORS_ORIGINS = (
     [o.strip() for o in _cors_raw.split(",") if o.strip()]
     if _cors_raw
-    else ["*"]
+    else [
+        "https://www.iqmath.in",
+        "https://iqmath.in",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 )
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORSMiddleware is registered at the end of this file (outermost) so 500s also get ACAO.
 
 # --- 🔐 SECURITY & AUTH CONFIG ---
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_change_me_in_prod")
@@ -2805,3 +2804,14 @@ _iqnex_router = build_iqnex_router(
 )
 app.include_router(_iqnex_router)
 _iqnex_promo_helpers.update(getattr(_iqnex_router, "_iqnex_helpers", {}))
+
+# CORS must be outermost so even 500 responses include Access-Control-Allow-Origin.
+# (Otherwise browsers report a misleading CORS error when assessment upload fails.)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
