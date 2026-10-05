@@ -100,18 +100,20 @@ const CourseCard = ({ course, type, navigate, handleFreeEnroll, openEnrollModal,
                 </div>
             )}
 
-            <div className="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 to-iqBlueLight/40">
+            <div className="relative w-full overflow-hidden bg-gradient-to-br from-slate-100 to-iqBlueLight/40">
                 {course.image_url ? (
                     <FastImage
                         src={course.image_url}
                         alt={course.title}
-                        widthHint={420}
-                        fit="contain"
-                        className="h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
-                        skeletonClassName="h-44 w-full"
+                        widthHint={640}
+                        fit="natural"
+                        className="block transition-transform duration-300 group-hover:scale-[1.01]"
+                        skeletonClassName="w-full"
                     />
                 ) : (
-                    <BookOpen size={40} className="text-slate-400" />
+                    <div className="flex aspect-video w-full items-center justify-center">
+                        <BookOpen size={40} className="text-slate-400" />
+                    </div>
                 )}
 
                 {/* Status Badges */}
@@ -1275,11 +1277,11 @@ const StudentDashboard = () => {
                                                 transition={{ delay: 0.05 + idx * 0.04, duration: 0.2 }}
                                                 className="flex flex-col items-center gap-6 rounded-2xl border border-slate-100 bg-surface p-6 shadow-soft md:flex-row"
                                             >
-                                                <div className="h-32 w-full overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-iqBlueLight/50 md:w-1/3">
+                                                <div className="w-full overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-iqBlueLight/50 md:w-1/3">
                                                     {course.image_url ? (
-                                                        <FastImage src={course.image_url} alt="" widthHint={320} fit="contain" className="h-full w-full" skeletonClassName="h-full w-full" />
+                                                        <FastImage src={course.image_url} alt="" widthHint={480} fit="natural" className="block" skeletonClassName="w-full" />
                                                     ) : (
-                                                        <div className="flex h-full items-center justify-center text-slate-300"><BookOpen /></div>
+                                                        <div className="flex aspect-video items-center justify-center text-slate-300"><BookOpen /></div>
                                                     )}
                                                 </div>
                                                 <div className="w-full flex-1">

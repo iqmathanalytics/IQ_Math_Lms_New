@@ -152,19 +152,21 @@ const SharedCourse = () => {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <div className="flex h-52 items-center justify-center bg-slate-50 sm:h-64">
+          <div className="w-full bg-slate-50">
             {course.image_url ? (
               <FastImage
                 src={course.image_url}
                 alt={course.title}
                 widthHint={960}
                 priority
-                fit="contain"
-                className="h-full w-full"
-                skeletonClassName="h-52 w-full sm:h-64"
+                fit="natural"
+                className="block"
+                skeletonClassName="w-full"
               />
             ) : (
-              <BookOpen className="text-slate-300" size={48} />
+              <div className="flex aspect-video w-full items-center justify-center">
+                <BookOpen className="text-slate-300" size={48} />
+              </div>
             )}
           </div>
           <div className="space-y-2 p-6">

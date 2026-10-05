@@ -128,11 +128,13 @@ const CourseList = () => {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" }}>
             {courses.map((course: any) => (
                 <div key={course.id} style={{ background: "white", borderRadius: "16px", border: "1px solid #e2e8f0", overflow: "hidden", cursor: "pointer", transition: "transform 0.2s", position: "relative" }} onClick={() => navigate(`/dashboard/course/${course.id}/builder`)}>
-                    <div style={{ height: "160px", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+                    <div style={{ background: "#f8fafc", position: "relative", overflow: "hidden" }}>
                         {course.image_url ? (
-                          <FastImage src={course.image_url} alt={course.title} widthHint={420} fit="contain" className="h-full w-full" skeletonClassName="h-full w-full" />
+                          <FastImage src={course.image_url} alt={course.title} widthHint={640} fit="natural" className="block" skeletonClassName="w-full" />
                         ) : (
-                          <FileText size={48} color="#cbd5e1" />
+                          <div style={{ aspectRatio: "16 / 9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <FileText size={48} color="#cbd5e1" />
+                          </div>
                         )}
                     </div>
                     

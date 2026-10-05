@@ -9,8 +9,11 @@ type FastImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "src"> & {
   priority?: boolean;
   /** Extra classes for the outer shell (sizing). */
   skeletonClassName?: string;
-  /** How the image fills its box — course thumbs should use contain (no crop). */
-  fit?: "contain" | "cover";
+  /**
+   * contain/cover = fill a fixed box.
+   * natural = full-width image; section height follows the image aspect ratio (no crop).
+   */
+  fit?: "contain" | "cover" | "natural";
 };
 
 /**
@@ -24,13 +27,17 @@ const FastImage = ({
   widthHint = 640,
   priority = false,
   skeletonClassName = "",
-  fit = "contain",
+  fit = "natural",
   onLoad,
   onError,
   ...rest
 }: FastImageProps) => {
   const original = resolveImageUrl(src);
-  const optimized = optimizeImageUrl(src, { width: widthHint, quality: 72, fit });
+  const optimized = optimizeImageUrl(src, {
+    width: widthHint,
+    quality: 72,
+    fit: fit === "cover" ? "cover" : "contain",
+  });
   const [currentSrc, setCurrentSrc] = useState(optimized || original);
   const [loaded, setLoaded] = useState(() =>
     optimized ? isImageWarmed(optimized) : Boolean(original && isImageWarmed(original))
@@ -38,28 +45,47 @@ const FastImage = ({
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    const next = optimizeImageUrl(src, { width: widthHint, quality: 72, fit }) || resolveImageUrl(src);
+    const next =
+      optimizeImageUrl(src, {
+        width: widthHint,
+        quality: 72,
+        fit: fit === "cover" ? "cover" : "contain",
+      }) || resolveImageUrl(src);
     setCurrentSrc(next);
     setFailed(false);
     setLoaded(next ? isImageWarmed(next) : false);
   }, [src, widthHint, fit]);
 
-  const shellClass = skeletonClassName || "w-full h-full";
-  const fitClass = fit === "cover" ? "object-cover" : "object-contain";
+  const isNatural = fit === "natural";
+  const shellClass = skeletonClassName || (isNatural ? "w-full" : "w-full h-full");
+  const fitClass =
+    fit === "cover" ? "object-cover" : fit === "contain" ? "object-contain" : "h-auto w-full";
 
   if (!currentSrc || failed) {
-    return <div className={`bg-slate-100 ${shellClass}`} aria-hidden />;
+    return (
+      <div
+        className={`bg-slate-100 ${isNatural ? "aspect-video w-full" : ""} ${shellClass}`}
+        aria-hidden
+      />
+    );
   }
 
   return (
-    <div className={`relative overflow-hidden bg-slate-50 ${shellClass}`}>
+    <div className={`relative overflow-hidden bg-slate-50 ${isNatural ? "w-full" : ""} ${shellClass}`}>
       {!loaded && (
-        <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-slate-100 via-slate-200/80 to-slate-100" aria-hidden />
+        <div
+          className={`animate-pulse bg-gradient-to-r from-slate-100 via-slate-200/80 to-slate-100 ${
+            isNatural ? "aspect-video w-full" : "absolute inset-0"
+          }`}
+          aria-hidden
+        />
       )}
       <img
         src={currentSrc}
         alt={alt}
-        className={`${fitClass} ${className} ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-100`}
+        className={`${fitClass} ${className} ${
+          loaded ? "opacity-100 relative" : isNatural ? "absolute inset-0 opacity-0" : "opacity-0"
+        } transition-opacity duration-150`}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
         fetchPriority={priority ? "high" : "low"}
@@ -70,7 +96,6 @@ const FastImage = ({
           onLoad?.(e);
         }}
         onError={(e) => {
-          // Proxy/CDN miss → fall back to the original full URL once
           if (original && currentSrc !== original) {
             setLoaded(false);
             setCurrentSrc(original);
