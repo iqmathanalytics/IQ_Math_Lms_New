@@ -55,7 +55,7 @@ from googleapiclient.http import MediaIoBaseUpload
 from sqlalchemy import text
 from token_manager import TokenManager
 import certificate_ids
-from certificate_pdf import create_certificate_pdf
+from certificate_pdf import FINAL_CERTIFICATE_STRUCTURE_VERSION, create_certificate_pdf
 from iqnex_api import build_iqnex_router
 
 
@@ -90,6 +90,12 @@ async def init_models():
             
             # 🆕 FIX FOR YOUR ERROR: Add last_login column
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS organization VARCHAR(255);"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS designation VARCHAR(255);"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS linkedin_url VARCHAR(500);"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS github_url VARCHAR(500);"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS twitter_url VARCHAR(500);"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url VARCHAR(500);"))
             await conn.execute(text("ALTER TABLE content_items ADD COLUMN IF NOT EXISTS resource_links TEXT;"))
 
             # IQNex: certificate ID template columns on courses
@@ -215,6 +221,17 @@ class PaymentVerifyRequest(BaseModel):
 
 class PasswordChange(BaseModel):
     new_password: str
+
+class StudentProfileUpdate(BaseModel):
+    organization: Optional[str] = None
+    designation: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    twitter_url: Optional[str] = None
+    website_url: Optional[str] = None
+    # Contact from registration is displayed; allow slight correction if empty/wrong
+    phone_number: Optional[str] = None
+    full_name: Optional[str] = None
 
 # Code Test Models
 class ProblemSchema(BaseModel):
@@ -1531,8 +1548,8 @@ async def generate_pdf_endpoint(course_id: int, db: AsyncSession = Depends(get_d
     res = await db.execute(select(models.Course).where(models.Course.id == course_id))
     course = res.scalars().first()
     
-    # 3. Generate PDF from Canva template (certificate_assets/certificate-template.png)
-    # Use the date they earned it; require a real certificate number.
+    # 3. Generate PDF using the locked FINAL certificate structure for every user/course.
+    # Template + FINAL_CERTIFICATE_FORMAT in certificate_pdf.py — no per-course layout.
     issued_at = certificate.issued_at or datetime.utcnow()
     formatted_date = issued_at.strftime("%B %d, %Y")
     cert_number = (certificate.certificate_id or "").strip()
@@ -1542,14 +1559,20 @@ async def generate_pdf_endpoint(course_id: int, db: AsyncSession = Depends(get_d
     student_name = (current_user.full_name or current_user.email or "Learner").strip()
     course_title = (course.title if course else "Course").strip()
 
-    pdf = await asyncio.to_thread(
-        create_certificate_pdf,
-        student_name,
-        course_title,
-        formatted_date,
-        cert_number,
-        getattr(course, "course_type", None),
-    )
+    try:
+        pdf = await asyncio.to_thread(
+            create_certificate_pdf,
+            student_name,
+            course_title,
+            formatted_date,
+            cert_number,
+            getattr(course, "course_type", None),
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
     safe_id = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in cert_number)
     return StreamingResponse(
         pdf,
@@ -1557,6 +1580,7 @@ async def generate_pdf_endpoint(course_id: int, db: AsyncSession = Depends(get_d
         headers={
             "Content-Disposition": f'attachment; filename="IQMath-Certificate-{safe_id}.pdf"',
             "Cache-Control": "no-store",
+            "X-IQMath-Certificate-Structure": FINAL_CERTIFICATE_STRUCTURE_VERSION,
         },
     )
 
@@ -2499,7 +2523,70 @@ async def read_users_me(current_user: models.User = Depends(get_current_user)):
         "full_name": current_user.full_name,
         "email": current_user.email,
         "role": current_user.role,
-        "phone_number": current_user.phone_number
+        "phone_number": current_user.phone_number,
+        "organization": getattr(current_user, "organization", None),
+        "designation": getattr(current_user, "designation", None),
+        "linkedin_url": getattr(current_user, "linkedin_url", None),
+        "github_url": getattr(current_user, "github_url", None),
+        "twitter_url": getattr(current_user, "twitter_url", None),
+        "website_url": getattr(current_user, "website_url", None),
+    }
+
+@app.patch("/api/v1/users/me")
+async def update_users_me(
+    payload: StudentProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Student profile: organization, designation, social links; contact comes from registration."""
+    data = payload.model_dump(exclude_unset=True)
+
+    def _clean_url(value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        v = value.strip()
+        if not v:
+            return None
+        if v.startswith(("http://", "https://")):
+            return v
+        return f"https://{v}"
+
+    if "full_name" in data and data["full_name"] is not None:
+        name = str(data["full_name"]).strip()
+        if name:
+            current_user.full_name = name
+
+    if "organization" in data:
+        org = (data["organization"] or "").strip()
+        current_user.organization = org or None
+    if "designation" in data:
+        des = (data["designation"] or "").strip()
+        current_user.designation = des or None
+
+    for field in ("linkedin_url", "github_url", "twitter_url", "website_url"):
+        if field in data:
+            setattr(current_user, field, _clean_url(data[field]))
+
+    # Contact: show from register; allow update only to fill/correct phone
+    if "phone_number" in data and data["phone_number"] is not None:
+        phone = str(data["phone_number"]).strip()
+        current_user.phone_number = phone or current_user.phone_number
+
+    await db.commit()
+    await db.refresh(current_user)
+    return {
+        "id": current_user.id,
+        "full_name": current_user.full_name,
+        "email": current_user.email,
+        "role": current_user.role,
+        "phone_number": current_user.phone_number,
+        "organization": current_user.organization,
+        "designation": current_user.designation,
+        "linkedin_url": current_user.linkedin_url,
+        "github_url": current_user.github_url,
+        "twitter_url": current_user.twitter_url,
+        "website_url": current_user.website_url,
+        "message": "Profile updated",
     }
 
 @app.post("/api/v1/admin/trigger-backup")

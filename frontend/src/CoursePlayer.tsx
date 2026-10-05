@@ -739,7 +739,35 @@ const CodingPlayer = ({ course, token }: { course: any, token: string }) => {
         </div>
     )
 };
-// --- ⏳ DELAYED PLAYER COMPONENT (Fixes the crash) ---
+const getYoutubeIdFromUrl = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
+const getDriveEmbedUrlFromUrl = (url: string) => {
+    if (!url) return null;
+    if (url.includes("drive.google.com")) {
+        return url.replace(/\/view.*/, "/preview").replace(/\/edit.*/, "/preview");
+    }
+    return null;
+};
+
+/** Warm YouTube CDN for a lesson URL (thumbnail fetch opens the connection early). */
+const prefetchYoutubeWarmup = (url?: string) => {
+    const id = url ? getYoutubeIdFromUrl(url) : null;
+    if (!id || typeof document === "undefined") return;
+    const href = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    if (document.querySelector(`link[data-yt-warm="${id}"]`)) return;
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.as = "image";
+    link.href = href;
+    link.setAttribute("data-yt-warm", id);
+    document.head.appendChild(link);
+};
+
+// --- 🎬 VIDEO PLAYER (same Plyr frame; mounts on next paint instead of a fixed 1s wait) ---
 const DelayedVideoPlayer = ({ lesson, plyrOptions }: { lesson: any, plyrOptions: any }) => {
     const [isReady, setIsReady] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -747,28 +775,34 @@ const DelayedVideoPlayer = ({ lesson, plyrOptions }: { lesson: any, plyrOptions:
     // 1️⃣ REFS: One for API, One for the Super Container
     const plyrRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const plyrSourceRef = useRef<any>(null);
 
-    const getYoutubeId = (url: string) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
+    const videoId = getYoutubeIdFromUrl(lesson.url || "");
+    const driveUrl = getDriveEmbedUrlFromUrl(lesson.url || "");
+    const plyrSource = useMemo(
+        () =>
+            videoId
+                ? { type: "video" as const, sources: [{ src: videoId, provider: "youtube" as const }] }
+                : null,
+        [videoId]
+    );
 
-    const getDriveEmbedUrl = (url: string) => {
-        if (!url) return null;
-        if (url.includes("drive.google.com")) {
-            // Convert /view or /edit to /preview for embedding
-            return url.replace(/\/view.*/, "/preview").replace(/\/edit.*/, "/preview");
-        }
-        return null;
-    };
-
+    // Mount after one paint so Plyr gets a stable container (avoids crash without 1s delay)
     useEffect(() => {
         setIsReady(false);
-        const timer = setTimeout(() => setIsReady(true), 1000);
-        return () => clearTimeout(timer);
-    }, [lesson.id]);
+        let cancelled = false;
+        let raf2 = 0;
+        const raf1 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => {
+                if (!cancelled) setIsReady(true);
+            });
+        });
+        prefetchYoutubeWarmup(lesson.url);
+        return () => {
+            cancelled = true;
+            cancelAnimationFrame(raf1);
+            if (raf2) cancelAnimationFrame(raf2);
+        };
+    }, [lesson.id, lesson.url]);
 
     // 2️⃣ CUSTOM FULLSCREEN TOGGLE
     const toggleFullScreen = () => {
@@ -786,24 +820,17 @@ const DelayedVideoPlayer = ({ lesson, plyrOptions }: { lesson: any, plyrOptions:
     const customOptions = useMemo(() => ({
         ...plyrOptions,
         controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume'], // ❌ Removed 'fullscreen'
+        autopause: true,
+        resetOnEnd: false,
     }), [plyrOptions]);
-
-    const videoId = getYoutubeId(lesson.url || "");
-    const driveUrl = getDriveEmbedUrl(lesson.url || "");
-
-    useEffect(() => {
-        plyrSourceRef.current = videoId
-            ? { type: "video" as const, sources: [{ src: videoId, provider: "youtube" as const }] }
-            : null;
-    }, [lesson.id, videoId]);
 
     if (!videoId && !driveUrl) return <div className="text-white p-10">Invalid Video URL</div>;
 
     if (!isReady) {
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-black">
-                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-white text-sm font-bold animate-pulse">LOADING NEXT LESSON...</p>
+            <div className="w-full h-full flex flex-col items-center justify-center bg-black min-h-[280px]">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <p className="text-white/80 text-xs font-bold tracking-wide">Starting video…</p>
             </div>
         );
     }
@@ -836,11 +863,11 @@ const DelayedVideoPlayer = ({ lesson, plyrOptions }: { lesson: any, plyrOptions:
 
                 {/* Wrapper allows styling the player size properly within flex container */}
                 <div style={{ width: "100%", height: "100%" }}>
-                    {videoId && (
+                    {videoId && plyrSource && (
                         <Plyr
                             ref={plyrRef}
                             key={lesson.id}
-                            source={plyrSourceRef.current}
+                            source={plyrSource}
                             options={customOptions} // ✅ Uses options WITHOUT default fullscreen button
                         />
                     )}
@@ -850,8 +877,9 @@ const DelayedVideoPlayer = ({ lesson, plyrOptions }: { lesson: any, plyrOptions:
                             width="100%"
                             height="100%"
                             style={{ border: "none", minHeight: isFullscreen ? "100vh" : "500px" }}
-                            allow="autoplay"
+                            allow="autoplay; encrypted-media; picture-in-picture"
                             allowFullScreen
+                            loading="eager"
                         />
                     )}
                 </div>
@@ -1332,6 +1360,11 @@ const CoursePlayer = () => {
 
                 const modules = res.data.modules || [];
                 const allLessons = modules.flatMap((m: any) => m.lessons || []);
+                // Prefetch first few YouTube thumbs so the CDN handshake is already done
+                allLessons
+                    .filter((l: any) => l?.type === "video" || l?.type === "live_class")
+                    .slice(0, 4)
+                    .forEach((l: any) => prefetchYoutubeWarmup(l.url));
 
                 setActiveLesson((prev: any) => {
                     if (prev?.id) {
@@ -1366,12 +1399,17 @@ const CoursePlayer = () => {
     }, [courseId, refreshTrigger]);
 
     useEffect(() => {
-        if (activeLesson) {
-            setIsTransitioning(true);
-            const timer = setTimeout(() => { setIsTransitioning(false); }, 500);
-            return () => clearTimeout(timer);
+        if (!activeLesson) return;
+        // Skip artificial wait for videos — player handles its own brief paint-ready gate
+        if (activeLesson.type === "video" || activeLesson.type === "live_class") {
+            setIsTransitioning(false);
+            prefetchYoutubeWarmup(activeLesson.url);
+            return;
         }
-    }, [activeLesson?.id]);
+        setIsTransitioning(true);
+        const timer = setTimeout(() => { setIsTransitioning(false); }, 120);
+        return () => clearTimeout(timer);
+    }, [activeLesson?.id, activeLesson?.type, activeLesson?.url]);
 
     const toggleModule = (moduleId: number) => setExpandedModules(prev => prev.includes(moduleId) ? prev.filter(id => id !== moduleId) : [...prev, moduleId]);
 
@@ -1413,7 +1451,16 @@ const CoursePlayer = () => {
 
     const plyrOptions = useMemo(() => ({
         controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
-        youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+        // Regular youtube.com host is faster than nocookie; Plyr chrome/frame unchanged
+        youtube: {
+            noCookie: false,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+            playsinline: 1,
+        },
+        preload: "metadata" as const,
     }), []);
 
     const handleAssignmentUpload = async () => {
@@ -1657,6 +1704,9 @@ const CoursePlayer = () => {
         return (<div className="flex flex-col h-full">{completionHeader}<div className="flex-1 overflow-hidden relative">{contentBody}</div></div>);
     };
 
+    const coursePrice = Number(course?.price ?? expiredCourseDetails?.price ?? 0);
+    const isFreeCourse = coursePrice <= 0;
+
     // ✅ 3. PAYWALL VIEW: Renders if trial is expired
     if (isTrialExpired) {
         // Use the fetched details, or fallbacks if loading failed
@@ -1676,80 +1726,121 @@ const CoursePlayer = () => {
                 </button>
 
                 <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-md w-full border border-slate-200 animate-fade-in-up relative z-10">
-                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <LockKeyhole size={40} className="text-red-500" />
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isFreeCourse ? "bg-green-100" : "bg-red-100"}`}>
+                        <LockKeyhole size={40} className={isFreeCourse ? "text-green-600" : "text-red-500"} />
                     </div>
-                    <h1 className="text-2xl font-extrabold text-slate-900 mb-2">Trial Expired</h1>
+                    <h1 className="text-2xl font-extrabold text-slate-900 mb-2">
+                        {isFreeCourse ? "Free Course" : "Trial Expired"}
+                    </h1>
                     <p className="text-slate-500 mb-8 leading-relaxed text-sm">
-                        Your 7-day free trial for <strong>{expiredCourseDetails?.title || "this course"}</strong> has ended.<br />
-                        Unlock lifetime access to continue learning.
+                        {isFreeCourse ? (
+                            <>
+                                <strong>{expiredCourseDetails?.title || "This course"}</strong> is free.
+                                <br />
+                                Enroll to continue learning — no payment needed.
+                            </>
+                        ) : (
+                            <>
+                                Your 7-day free trial for <strong>{expiredCourseDetails?.title || "this course"}</strong> has ended.
+                                <br />
+                                Unlock lifetime access to continue learning.
+                            </>
+                        )}
                     </p>
 
-                    <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Total Price</p>
-                        {/* ✅ DYNAMIC PRICE */}
-                        <p className="text-3xl font-extrabold text-slate-900">
-                            {paywallPromoInfo ? (
-                                <>
-                                    ₹{paywallPromoInfo.final_price}{" "}
-                                    <span className="text-lg font-medium text-slate-400 line-through">
-                                        ₹{paywallPromoInfo.original_price}
-                                    </span>
-                                </>
-                            ) : (
-                                <>
-                                    ₹{displayPrice}{" "}
-                                    <span className="text-lg font-medium text-slate-400 line-through">₹{originalPrice}</span>
-                                </>
-                            )}
-                        </p>
-                    </div>
-
-                    <div className="mb-4 flex gap-2">
-                        <input
-                            type="text"
-                            placeholder="Promo code"
-                            value={paywallPromoCode}
-                            onChange={(e) => {
-                                setPaywallPromoCode(e.target.value);
-                                setPaywallPromoInfo(null);
+                    {isFreeCourse ? (
+                        <button
+                            type="button"
+                            disabled={paywallProcessing}
+                            onClick={async () => {
+                                setPaywallProcessing(true);
+                                try {
+                                    const token = localStorage.getItem("token");
+                                    await axios.post(
+                                        `${API_BASE_URL}/enroll/${courseId}`,
+                                        { type: "paid" },
+                                        { headers: { Authorization: `Bearer ${token}` } }
+                                    );
+                                    triggerToast("Enrolled! Reloading…", "success");
+                                    setTimeout(() => window.location.reload(), 1000);
+                                } catch (err: any) {
+                                    triggerToast(getErrorMessage(err, "Enrollment failed"), "error");
+                                } finally {
+                                    setPaywallProcessing(false);
+                                }
                             }}
-                            className="flex-1 p-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wide outline-none focus:ring-2 focus:ring-[#8DC63F]"
-                        />
-                        <button
-                            type="button"
-                            onClick={applyPaywallPromo}
-                            className="px-4 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                            className="w-full py-3.5 bg-[#8DC63F] hover:bg-[#6FA32E] disabled:opacity-60 text-white rounded-xl font-bold text-lg transition-all"
                         >
-                            Apply
+                            {paywallProcessing ? "Enrolling..." : "Enroll Free"}
                         </button>
-                    </div>
-                    {paywallPromoInfo && (
-                        <p className="text-xs text-green-700 font-semibold mb-4 -mt-2">{paywallPromoInfo.message}</p>
-                    )}
+                    ) : (
+                        <>
+                            <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Total Price</p>
+                                <p className="text-3xl font-extrabold text-slate-900">
+                                    {paywallPromoInfo ? (
+                                        <>
+                                            ₹{paywallPromoInfo.final_price}{" "}
+                                            <span className="text-lg font-medium text-slate-400 line-through">
+                                                ₹{paywallPromoInfo.original_price}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            ₹{displayPrice}{" "}
+                                            <span className="text-lg font-medium text-slate-400 line-through">₹{originalPrice}</span>
+                                        </>
+                                    )}
+                                </p>
+                            </div>
 
-                    <button
-                        onClick={handlePayment}
-                        disabled={paywallProcessing}
-                        className="w-full py-3.5 bg-[#8DC63F] hover:bg-[#6FA32E] disabled:opacity-60 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-200 hover:scale-105 active:scale-95 cursor-pointer"
-                    >
-                        <CreditCard size={20} />
-                        {paywallProcessing
-                            ? "Processing..."
-                            : paywallPromoInfo?.final_price === 0
-                              ? "Unlock Free with Promo"
-                              : "Buy Lifetime Access"}
-                    </button>
-                    {RAZORPAY_PAYLINK_URL && (
-                        <button
-                            type="button"
-                            onClick={openRazorpayPayLink}
-                            className="w-full mt-3 py-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition-all"
-                        >
-                            Pay via Razorpay Link
-                        </button>
+                            <div className="mb-4 flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Promo code"
+                                    value={paywallPromoCode}
+                                    onChange={(e) => {
+                                        setPaywallPromoCode(e.target.value);
+                                        setPaywallPromoInfo(null);
+                                    }}
+                                    className="flex-1 p-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wide outline-none focus:ring-2 focus:ring-[#8DC63F]"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={applyPaywallPromo}
+                                    className="px-4 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                            {paywallPromoInfo && (
+                                <p className="text-xs text-green-700 font-semibold mb-4 -mt-2">{paywallPromoInfo.message}</p>
+                            )}
+
+                            <button
+                                onClick={handlePayment}
+                                disabled={paywallProcessing}
+                                className="w-full py-3.5 bg-[#8DC63F] hover:bg-[#6FA32E] disabled:opacity-60 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-200 hover:scale-105 active:scale-95 cursor-pointer"
+                            >
+                                <CreditCard size={20} />
+                                {paywallProcessing
+                                    ? "Processing..."
+                                    : paywallPromoInfo?.final_price === 0
+                                      ? "Unlock Free with Promo"
+                                      : "Buy Lifetime Access"}
+                            </button>
+                            {RAZORPAY_PAYLINK_URL && (
+                                <button
+                                    type="button"
+                                    onClick={openRazorpayPayLink}
+                                    className="w-full mt-3 py-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition-all"
+                                >
+                                    Pay via Razorpay Link
+                                </button>
+                            )}
+                            <p className="text-[10px] text-slate-400 mt-4">Secure payment via Razorpay</p>
+                        </>
                     )}
-                    <p className="text-[10px] text-slate-400 mt-4">Secure payment via Razorpay</p>
                 </div>
             </div>
         );
@@ -1772,7 +1863,9 @@ const CoursePlayer = () => {
                     </div>
                     <div className="flex items-center gap-2 lg:gap-4">
                         {localStorage.getItem("role") === "instructor" && (<button onClick={handleEditClick} className="hidden lg:flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-bold border border-slate-200 hover:bg-slate-200 transition-colors text-sm"><Edit size={16} /> Edit Course</button>)}
-                        <button onClick={handlePayment} className="hidden sm:flex items-center gap-2 bg-[#8DC63F] text-white px-4 py-2 rounded-lg font-bold border-none cursor-pointer hover:bg-[#6FA32E] transition-colors text-xs lg:text-sm"><CreditCard size={18} /> Buy Lifetime Access</button>
+                        {!isFreeCourse && (
+                            <button onClick={handlePayment} className="hidden sm:flex items-center gap-2 bg-[#8DC63F] text-white px-4 py-2 rounded-lg font-bold border-none cursor-pointer hover:bg-[#6FA32E] transition-colors text-xs lg:text-sm"><CreditCard size={18} /> Buy Lifetime Access</button>
+                        )}
                         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="bg-none border-none cursor-pointer p-2 hover:bg-slate-100 rounded-lg"><Menu color={brand.textMain} size={24} /></button>
                     </div>
                 </header>

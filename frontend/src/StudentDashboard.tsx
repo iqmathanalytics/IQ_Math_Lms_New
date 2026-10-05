@@ -8,7 +8,8 @@ import {
     LayoutDashboard, BookOpen, Compass, Award, LogOut,
     CheckCircle, AlertTriangle, X,
     Code, Play, Monitor, ChevronRight, Cloud,
-    Menu, Sparkles, Zap, User, PlayCircle, Trophy, Lock, BellRing, Trash2, Settings, Download, Clock
+    Menu, Sparkles, Zap, User, PlayCircle, Trophy, Lock, BellRing, Trash2, Settings, Download, Clock,
+    Building2, Briefcase, Phone, Linkedin, Github, Globe, Share2
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -216,7 +217,26 @@ const StudentDashboard = () => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [studentProfile, setStudentProfile] = useState({ name: "Loading...", email: "..." });
+    const [studentProfile, setStudentProfile] = useState({
+        name: "Loading...",
+        email: "...",
+        phone: "",
+        organization: "",
+        designation: "",
+        linkedin_url: "",
+        github_url: "",
+        twitter_url: "",
+        website_url: "",
+    });
+    const [profileForm, setProfileForm] = useState({
+        organization: "",
+        designation: "",
+        linkedin_url: "",
+        github_url: "",
+        twitter_url: "",
+        website_url: "",
+    });
+    const [profileSaving, setProfileSaving] = useState(false);
     const [newPassword, setNewPassword] = useState("");
     // ✅ MOVED: Mobile Menu State (Must be before conditional returns)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -288,9 +308,25 @@ const StudentDashboard = () => {
     const fetchProfile = async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/users/me`, { headers: authHeaders() });
-            setStudentProfile({
-                name: res.data.full_name,
-                email: res.data.email
+            const next = {
+                name: res.data.full_name || "",
+                email: res.data.email || "",
+                phone: res.data.phone_number || "",
+                organization: res.data.organization || "",
+                designation: res.data.designation || "",
+                linkedin_url: res.data.linkedin_url || "",
+                github_url: res.data.github_url || "",
+                twitter_url: res.data.twitter_url || "",
+                website_url: res.data.website_url || "",
+            };
+            setStudentProfile(next);
+            setProfileForm({
+                organization: next.organization,
+                designation: next.designation,
+                linkedin_url: next.linkedin_url,
+                github_url: next.github_url,
+                twitter_url: next.twitter_url,
+                website_url: next.website_url,
             });
         } catch (e: any) {
             if (!isNetworkError(e)) console.error("Profile fetch error", e);
@@ -384,6 +420,40 @@ const StudentDashboard = () => {
             setNewPassword(""); // ✅ This uses the setter, fixing your error!
         } catch (err) {
             triggerToast("Failed to update password", "error");
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        setProfileSaving(true);
+        try {
+            const res = await axios.patch(
+                `${API_BASE_URL}/users/me`,
+                {
+                    organization: profileForm.organization.trim() || null,
+                    designation: profileForm.designation.trim() || null,
+                    linkedin_url: profileForm.linkedin_url.trim() || null,
+                    github_url: profileForm.github_url.trim() || null,
+                    twitter_url: profileForm.twitter_url.trim() || null,
+                    website_url: profileForm.website_url.trim() || null,
+                },
+                { headers: authHeaders() }
+            );
+            setStudentProfile((prev) => ({
+                ...prev,
+                organization: res.data.organization || "",
+                designation: res.data.designation || "",
+                linkedin_url: res.data.linkedin_url || "",
+                github_url: res.data.github_url || "",
+                twitter_url: res.data.twitter_url || "",
+                website_url: res.data.website_url || "",
+                phone: res.data.phone_number || prev.phone,
+                name: res.data.full_name || prev.name,
+            }));
+            triggerToast("Profile saved!", "success");
+        } catch (err: any) {
+            triggerToast(getErrorMessage(err, "Failed to save profile"), "error");
+        } finally {
+            setProfileSaving(false);
         }
     };
 
@@ -1068,9 +1138,12 @@ const StudentDashboard = () => {
                                 <div className="mb-3 border-b border-slate-100 pb-3">
                                     <p className="truncate font-bold text-slate-800">{studentProfile.name}</p>
                                     <p className="truncate text-xs text-slate-500">{studentProfile.email}</p>
+                                    {studentProfile.phone && (
+                                        <p className="mt-0.5 truncate text-xs text-slate-400">{studentProfile.phone}</p>
+                                    )}
                                 </div>
                                 <button onClick={() => { setActiveTab("settings"); setShowProfileMenu(false); }} className="mb-1 flex w-full items-center gap-3 rounded-lg p-2 text-sm font-bold text-slate-600 transition-colors hover:bg-iqBlueLight hover:text-iqBlue">
-                                    <Settings size={16} /> Settings
+                                    <Settings size={16} /> Profile & Settings
                                 </button>
                                 <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg p-2 text-sm font-bold text-red-500 transition-colors hover:bg-red-50">
                                     <LogOut size={16} /> Logout
@@ -1139,7 +1212,7 @@ const StudentDashboard = () => {
                         {activeTab === "test" && "Coding Arena"}
                         {activeTab === "certificates" && "My Achievements"}
                         {activeTab === "notifications" && "Notifications"}
-                        {activeTab === "settings" && "Account Settings"}
+                        {activeTab === "settings" && "Profile & Settings"}
                     </h2>
                     <p className="font-medium text-slate-500">Welcome to your student portal</p>
                 </div>
@@ -1334,11 +1407,145 @@ const StudentDashboard = () => {
 
                 {/* SETTINGS TAB */}
                 {activeTab === "settings" && (
-                    <div className="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Lock size={20} className="text-slate-400" /> Change Password</h3>
-                        <div className="space-y-4">
-                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">New Password</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0088C7]" /></div>
-                            <button onClick={handleUpdatePassword} className="w-full py-3 bg-[#0088C7] hover:bg-blue-700 text-white rounded-xl font-bold transition-all">Update Password</button>
+                    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                            <h3 className="mb-1 flex items-center gap-2 text-xl font-bold text-slate-800">
+                                <User size={20} className="text-iqBlue" /> Profile
+                            </h3>
+                            <p className="mb-6 text-sm text-slate-500">
+                                Add your college or organization details and social links.
+                            </p>
+
+                            <div className="mb-5 grid gap-4 sm:grid-cols-2">
+                                <div className="sm:col-span-2">
+                                    <label className="mb-2 block text-xs font-bold uppercase text-slate-500">Full name</label>
+                                    <input
+                                        type="text"
+                                        value={studentProfile.name}
+                                        readOnly
+                                        className="w-full cursor-default rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-700 outline-none"
+                                    />
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <label className="mb-2 block text-xs font-bold uppercase text-slate-500">Email</label>
+                                    <input
+                                        type="email"
+                                        value={studentProfile.email}
+                                        readOnly
+                                        className="w-full cursor-default rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-700 outline-none"
+                                    />
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <label className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-slate-500">
+                                        <Phone size={12} /> Contact (from registration)
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={studentProfile.phone || "Not provided at signup"}
+                                        readOnly
+                                        className="w-full cursor-default rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-700 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-slate-500">
+                                        <Building2 size={12} /> Organization / College
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Anna University"
+                                        value={profileForm.organization}
+                                        onChange={(e) => setProfileForm((f) => ({ ...f, organization: e.target.value }))}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-[#0088C7]"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-slate-500">
+                                        <Briefcase size={12} /> Designation
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Student / Intern"
+                                        value={profileForm.designation}
+                                        onChange={(e) => setProfileForm((f) => ({ ...f, designation: e.target.value }))}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-[#0088C7]"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
+                                <Share2 size={16} className="text-iqGreen" /> Social media links
+                            </div>
+                            <div className="mb-6 grid gap-3">
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-[#0088C7]">
+                                    <Linkedin size={16} className="shrink-0 text-[#0A66C2]" />
+                                    <input
+                                        type="url"
+                                        placeholder="LinkedIn URL"
+                                        value={profileForm.linkedin_url}
+                                        onChange={(e) => setProfileForm((f) => ({ ...f, linkedin_url: e.target.value }))}
+                                        className="w-full bg-transparent py-3 text-sm outline-none"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-[#0088C7]">
+                                    <Github size={16} className="shrink-0 text-slate-800" />
+                                    <input
+                                        type="url"
+                                        placeholder="GitHub URL"
+                                        value={profileForm.github_url}
+                                        onChange={(e) => setProfileForm((f) => ({ ...f, github_url: e.target.value }))}
+                                        className="w-full bg-transparent py-3 text-sm outline-none"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-[#0088C7]">
+                                    <Share2 size={16} className="shrink-0 text-sky-500" />
+                                    <input
+                                        type="url"
+                                        placeholder="X / Twitter URL"
+                                        value={profileForm.twitter_url}
+                                        onChange={(e) => setProfileForm((f) => ({ ...f, twitter_url: e.target.value }))}
+                                        className="w-full bg-transparent py-3 text-sm outline-none"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-[#0088C7]">
+                                    <Globe size={16} className="shrink-0 text-iqBlue" />
+                                    <input
+                                        type="url"
+                                        placeholder="Website / Portfolio URL"
+                                        value={profileForm.website_url}
+                                        onChange={(e) => setProfileForm((f) => ({ ...f, website_url: e.target.value }))}
+                                        className="w-full bg-transparent py-3 text-sm outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleSaveProfile}
+                                disabled={profileSaving}
+                                className="w-full rounded-xl bg-[#0088C7] py-3 font-bold text-white transition-all hover:bg-blue-700 disabled:opacity-60"
+                            >
+                                {profileSaving ? "Saving..." : "Save Profile"}
+                            </button>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                            <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-slate-800">
+                                <Lock size={20} className="text-slate-400" /> Change Password
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold uppercase text-slate-500">New Password</label>
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none focus:ring-2 focus:ring-[#0088C7]"
+                                    />
+                                </div>
+                                <button onClick={handleUpdatePassword} className="w-full rounded-xl bg-[#0088C7] py-3 font-bold text-white transition-all hover:bg-blue-700">
+                                    Update Password
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import API_BASE_URL from './config';
 import {
   User, Lock, Mail, ArrowRight, CheckCircle,
@@ -351,141 +351,258 @@ const Login = () => {
     }
   };
 
+  const prefersReducedMotion = useReducedMotion();
+
+  const easeOut = [0.22, 1, 0.36, 1] as const;
+  const springSoft = prefersReducedMotion
+    ? { duration: 0.01 }
+    : { type: "spring" as const, stiffness: 180, damping: 24, mass: 0.85 };
+  const springSnappy = prefersReducedMotion
+    ? { duration: 0.01 }
+    : { type: "spring" as const, stiffness: 320, damping: 28, mass: 0.8 };
+
   const chooserContainer = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.12, delayChildren: 0.15 },
+      transition: prefersReducedMotion
+        ? { duration: 0.01 }
+        : { staggerChildren: 0.1, delayChildren: 0.08 },
     },
   };
 
   const chooserItem = {
-    hidden: { opacity: 0, y: 28, scale: 0.94 },
+    hidden: prefersReducedMotion
+      ? { opacity: 0 }
+      : { opacity: 0, y: 32, filter: "blur(8px)" },
+    show: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: springSoft,
+    },
+  };
+
+  const fieldContainer = {
+    hidden: {},
+    show: {
+      transition: prefersReducedMotion
+        ? { duration: 0.01 }
+        : { staggerChildren: 0.07, delayChildren: 0.12 },
+    },
+  };
+
+  const fieldItem = {
+    hidden: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.98 },
     show: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { type: "spring", stiffness: 260, damping: 22 },
+      transition: { duration: 0.45, ease: easeOut },
     },
   };
 
+  const sheetMotion = prefersReducedMotion
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.15 },
+      }
+    : {
+        initial: { opacity: 0, scale: 0.92, y: "8%" },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.96, y: "4%" },
+        transition: springSnappy,
+      };
+
+  const formMotion = prefersReducedMotion
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.12 },
+      }
+    : {
+        initial: { opacity: 0, y: 28, filter: "blur(6px)" },
+        animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+        exit: { opacity: 0, y: -14, filter: "blur(4px)" },
+        transition: { duration: 0.38, ease: easeOut },
+  };
+
   return (
-    <div className="auth-canvas">
+    <div className="auth-canvas student-login">
       <TechAuthBackground />
 
-      <button
-        onClick={() => navigate("/admin-login")}
-        className="btn-ghost-pill absolute top-4 right-4 z-40 lg:top-6 lg:right-6"
-      >
-        <ShieldCheck size={16} className="lg:h-[18px] lg:w-[18px]" /> Admin Access
-      </button>
-
-      {/* Student login chooser — logo only here (not on Sign In / Create Account sheets) */}
-      {!authPanel && (
-        <motion.div
-          variants={chooserContainer}
-          initial="hidden"
-          animate="show"
-          className="relative z-10 flex w-full max-w-xl flex-col items-center px-6 text-center"
-        >
-          <motion.div variants={chooserItem} className="mb-6">
-            <BrandLogo size="xl" showTagline />
-          </motion.div>
-
-          <motion.h1
-            variants={chooserItem}
-            className="mb-2 text-3xl font-extrabold tracking-tight text-iqSlate sm:text-4xl"
-          >
-            Welcome, Learner
-          </motion.h1>
-          <motion.p variants={chooserItem} className="mb-10 max-w-sm text-sm text-slate-500">
-            Sign in to continue learning, or create a new account to get started.
-          </motion.p>
-
-          <motion.div
-            variants={chooserItem}
-            className="flex w-full flex-col gap-4 sm:flex-row sm:gap-5"
-          >
-            <motion.button
-              type="button"
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.45, type: "spring", stiffness: 260, damping: 20 }}
-              whileHover={{ scale: 1.03, y: -4 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => openPanel("signin")}
-              className="auth-choice-card group border-iqBlue/25 hover:border-iqBlue/50 hover:bg-iqBlueLight/50 hover:shadow-lift"
-            >
-              <span className="relative mb-1 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-iqBlue/15 to-iqBlue/5 text-iqBlue shadow-inner ring-1 ring-iqBlue/20 transition-all duration-300 ease-out group-hover:scale-105 group-hover:from-iqBlue group-hover:to-iqBlueDark group-hover:text-white group-hover:ring-iqBlue/40">
-                <span className="absolute inset-0 rounded-2xl bg-iqBlue/20 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
-                <LogIn className="relative" size={30} strokeWidth={1.75} />
-              </span>
-              <span className="text-lg font-extrabold text-iqSlate">Sign In</span>
-              <span className="text-xs text-slate-400">Access your learning hub</span>
-              <span className="mt-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-iqBlue opacity-0 transition-opacity group-hover:opacity-100">
-                Continue <ArrowRight size={12} />
-              </span>
-            </motion.button>
-
-            <motion.button
-              type="button"
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.55, type: "spring", stiffness: 260, damping: 20 }}
-              whileHover={{ scale: 1.03, y: -4 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => openPanel("signup")}
-              className="auth-choice-card group border-iqGreen/30 hover:border-iqGreen/55 hover:bg-iqGreenLight/60 hover:shadow-lift"
-            >
-              <span className="relative mb-1 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-iqGreen/20 to-iqGreen/5 text-iqGreen shadow-inner ring-1 ring-iqGreen/25 transition-all duration-300 ease-out group-hover:scale-105 group-hover:from-iqGreen group-hover:to-iqGreenDark group-hover:text-white group-hover:ring-iqGreen/45">
-                <span className="absolute inset-0 rounded-2xl bg-iqGreen/25 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
-                <UserPlus className="relative" size={30} strokeWidth={1.75} />
-              </span>
-              <span className="text-lg font-extrabold text-iqSlate">Create New Account</span>
-              <span className="text-xs text-slate-400">Start your IQMath journey</span>
-              <span className="mt-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-iqGreen opacity-0 transition-opacity group-hover:opacity-100">
-                Join now <ArrowRight size={12} />
-              </span>
-            </motion.button>
-          </motion.div>
-        </motion.div>
+      {!prefersReducedMotion && !authPanel && (
+        <>
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute left-[12%] top-[22%] z-[1] h-2 w-2 rounded-full bg-iqBlue/40"
+            animate={{ y: [0, -14, 0], opacity: [0.35, 0.8, 0.35] }}
+            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute right-[16%] top-[30%] z-[1] h-1.5 w-1.5 rounded-full bg-iqGreen/50"
+            animate={{ y: [0, 12, 0], opacity: [0.3, 0.75, 0.3] }}
+            transition={{ duration: 6.2, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+          />
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute bottom-[24%] left-[22%] z-[1] h-1 w-1 rounded-full bg-iqBlue/30"
+            animate={{ y: [0, -10, 0], x: [0, 6, 0], opacity: [0.25, 0.7, 0.25] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+          />
+        </>
       )}
 
-      {/* Fullscreen auth sheet — pops in from center */}
+      <motion.button
+        onClick={() => navigate("/admin-login")}
+        className="btn-ghost-pill absolute top-4 right-4 z-40 lg:top-6 lg:right-6"
+        initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.5, ease: easeOut }}
+        whileHover={prefersReducedMotion ? undefined : { scale: 1.04, y: -1 }}
+        whileTap={{ scale: 0.97 }}
+      >
+        <ShieldCheck size={16} className="lg:h-[18px] lg:w-[18px]" /> Admin Access
+      </motion.button>
+
+      <AnimatePresence mode="wait">
+        {!authPanel && (
+          <motion.div
+            key="chooser"
+            variants={chooserContainer}
+            initial="hidden"
+            animate="show"
+            exit={
+              prefersReducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, y: -16, filter: "blur(6px)", transition: { duration: 0.28, ease: easeOut } }
+            }
+            className="relative z-10 flex w-full max-w-xl flex-col items-center px-6 text-center"
+          >
+            <motion.div variants={chooserItem} className="mb-6">
+              <BrandLogo size="xl" showTagline />
+            </motion.div>
+
+            <motion.h1
+              variants={chooserItem}
+              className="mb-2 text-3xl font-extrabold tracking-tight text-iqSlate sm:text-4xl"
+            >
+              Welcome, Learner
+            </motion.h1>
+            <motion.p variants={chooserItem} className="mb-10 max-w-sm text-sm text-slate-500">
+              Sign in to continue learning, or create a new account to get started.
+            </motion.p>
+
+            <motion.div
+              variants={chooserItem}
+              className="flex w-full flex-col gap-4 sm:flex-row sm:gap-5"
+            >
+              <motion.button
+                type="button"
+                whileHover={prefersReducedMotion ? undefined : { scale: 1.035, y: -6 }}
+                whileTap={{ scale: 0.975 }}
+                transition={springSoft}
+                onClick={() => openPanel("signin")}
+                className="auth-choice-card group border-iqBlue/25 hover:border-iqBlue/50 hover:bg-iqBlueLight/50 hover:shadow-lift"
+              >
+                <span className="relative mb-1 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-iqBlue/15 to-iqBlue/5 text-iqBlue shadow-inner ring-1 ring-iqBlue/20 transition-all duration-300 ease-out group-hover:scale-105 group-hover:from-iqBlue group-hover:to-iqBlueDark group-hover:text-white group-hover:ring-iqBlue/40">
+                  <span className="absolute inset-0 rounded-2xl bg-iqBlue/20 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
+                  <LogIn className="relative" size={30} strokeWidth={1.75} />
+                </span>
+                <span className="text-lg font-extrabold text-iqSlate">Sign In</span>
+                <span className="text-xs text-slate-400">Access your learning hub</span>
+                <span className="mt-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-iqBlue opacity-0 transition-opacity group-hover:opacity-100">
+                  Continue <ArrowRight size={12} />
+                </span>
+              </motion.button>
+
+              <motion.button
+                type="button"
+                whileHover={prefersReducedMotion ? undefined : { scale: 1.035, y: -6 }}
+                whileTap={{ scale: 0.975 }}
+                transition={springSoft}
+                onClick={() => openPanel("signup")}
+                className="auth-choice-card group border-iqGreen/30 hover:border-iqGreen/55 hover:bg-iqGreenLight/60 hover:shadow-lift"
+              >
+                <span className="relative mb-1 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-iqGreen/20 to-iqGreen/5 text-iqGreen shadow-inner ring-1 ring-iqGreen/25 transition-all duration-300 ease-out group-hover:scale-105 group-hover:from-iqGreen group-hover:to-iqGreenDark group-hover:text-white group-hover:ring-iqGreen/45">
+                  <span className="absolute inset-0 rounded-2xl bg-iqGreen/25 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
+                  <UserPlus className="relative" size={30} strokeWidth={1.75} />
+                </span>
+                <span className="text-lg font-extrabold text-iqSlate">Create New Account</span>
+                <span className="text-xs text-slate-400">Start your IQMath journey</span>
+                <span className="mt-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-iqGreen opacity-0 transition-opacity group-hover:opacity-100">
+                  Join now <ArrowRight size={12} />
+                </span>
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {authPanel && (
           <motion.div
             key="auth-sheet"
-            className="fixed inset-0 z-50 flex flex-col bg-white"
-            initial={{ opacity: 0, scale: 0.82, y: 40, borderRadius: 56 }}
-            animate={{ opacity: 1, scale: 1, y: 0, borderRadius: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 24, borderRadius: 40 }}
-            transition={{ type: "spring", stiffness: 300, damping: 26, mass: 0.9 }}
+            className="fixed inset-0 z-50 flex flex-col bg-white/95 backdrop-blur-xl"
+            initial={sheetMotion.initial}
+            animate={sheetMotion.animate}
+            exit={sheetMotion.exit}
+            transition={sheetMotion.transition}
           >
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div
-                className={`absolute -left-[10%] -top-[15%] h-[40%] w-[40%] rounded-full blur-[90px] ${
-                  isSignUp ? "bg-iqGreen/15" : "bg-iqBlue/15"
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 overflow-hidden"
+              initial={prefersReducedMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, ease: easeOut }}
+            >
+              <motion.div
+                className={`absolute -left-[10%] -top-[15%] h-[42%] w-[42%] rounded-full blur-[90px] ${
+                  isSignUp ? "bg-iqGreen/18" : "bg-iqBlue/18"
                 }`}
+                animate={
+                  prefersReducedMotion
+                    ? undefined
+                    : { scale: [1, 1.08, 1], x: [0, 12, 0], y: [0, 8, 0] }
+                }
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
               />
-              <div
-                className={`absolute -bottom-[12%] -right-[8%] h-[40%] w-[40%] rounded-full blur-[100px] ${
-                  isSignUp ? "bg-iqBlue/10" : "bg-iqGreen/15"
+              <motion.div
+                className={`absolute -bottom-[12%] -right-[8%] h-[42%] w-[42%] rounded-full blur-[100px] ${
+                  isSignUp ? "bg-iqBlue/12" : "bg-iqGreen/18"
                 }`}
+                animate={
+                  prefersReducedMotion
+                    ? undefined
+                    : { scale: [1, 1.1, 1], x: [0, -10, 0], y: [0, -6, 0] }
+                }
+                transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
               />
-            </div>
+            </motion.div>
 
-            <div className="relative z-10 flex items-center justify-between px-5 py-4 sm:px-8">
+            <motion.div
+              className="relative z-10 flex items-center justify-between px-5 py-4 sm:px-8"
+              initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12, duration: 0.4, ease: easeOut }}
+            >
               <BrandLogo size="md" />
-              <button
+              <motion.button
                 type="button"
                 onClick={closePanel}
+                whileHover={prefersReducedMotion ? undefined : { scale: 1.06, rotate: 90 }}
+                whileTap={{ scale: 0.94 }}
+                transition={{ type: "spring", stiffness: 400, damping: 22 }}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800"
                 aria-label="Close"
               >
                 <X size={20} />
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
 
             <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-10">
               <AnimatePresence mode="wait">
@@ -493,10 +610,10 @@ const Login = () => {
                   <motion.form
                     key="signin-form"
                     onSubmit={handleAuth}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -16 }}
-                    transition={{ duration: 0.3 }}
+                    initial={formMotion.initial}
+                    animate={formMotion.animate}
+                    exit={formMotion.exit}
+                    transition={formMotion.transition}
                     className="flex w-full max-w-[380px] flex-col items-center text-center"
                   >
                     <h1 className="mb-1 text-2xl font-extrabold tracking-tight text-iqSlate sm:text-3xl">
@@ -504,8 +621,13 @@ const Login = () => {
                     </h1>
                     <p className="mb-8 text-sm text-slate-400">Sign in using email and password</p>
 
-                    <div className="w-full space-y-4">
-                      <div className="input-shell">
+                    <motion.div
+                      variants={fieldContainer}
+                      initial="hidden"
+                      animate="show"
+                      className="w-full space-y-4"
+                    >
+                      <motion.div variants={fieldItem} className="input-shell">
                         <Mail className="mr-3 shrink-0 text-slate-400" size={20} strokeWidth={1.5} />
                         <input
                           type="email"
@@ -515,8 +637,8 @@ const Login = () => {
                           className="input-field"
                           onChange={handleInputChange}
                         />
-                      </div>
-                      <div className="input-shell">
+                      </motion.div>
+                      <motion.div variants={fieldItem} className="input-shell">
                         <Lock className="mr-3 shrink-0 text-slate-400" size={20} strokeWidth={1.5} />
                         <input
                           type={showPassword ? "text" : "password"}
@@ -533,13 +655,19 @@ const Login = () => {
                           aria-label={showPassword ? "Hide password" : "Show password"}
                         >
                           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                      </div>
-                    </div>
+      </button>
+                      </motion.div>
+                    </motion.div>
 
-                    <button type="submit" disabled={loading} className={`${activeBtn} mt-6 w-full py-3.5`}>
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      whileHover={prefersReducedMotion || loading ? undefined : { scale: 1.02, y: -1 }}
+                      whileTap={loading ? undefined : { scale: 0.98 }}
+                      className={`${activeBtn} mt-6 w-full py-3.5`}
+                    >
                       {loading ? "Signing In..." : "Sign In"} <ArrowRight size={18} />
-                    </button>
+                    </motion.button>
 
                     <p className="mt-8 text-sm text-slate-500">
                       Don&apos;t have an account?{" "}
@@ -556,10 +684,10 @@ const Login = () => {
                   <motion.form
                     key="signup-form"
                     onSubmit={handleAuth}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -16 }}
-                    transition={{ duration: 0.3 }}
+                    initial={formMotion.initial}
+                    animate={formMotion.animate}
+                    exit={formMotion.exit}
+                    transition={formMotion.transition}
                     className="flex w-full max-w-[380px] flex-col items-center text-center"
                   >
                     <h1 className={`mb-2 text-2xl font-extrabold tracking-tight sm:text-3xl ${activeText}`}>
@@ -571,8 +699,13 @@ const Login = () => {
                         : "Enter your details to create an account"}
                     </p>
 
-                    <div className="w-full space-y-4">
-                      <div className="input-shell-accent">
+                    <motion.div
+                      variants={fieldContainer}
+                      initial="hidden"
+                      animate="show"
+                      className="w-full space-y-4"
+                    >
+                      <motion.div variants={fieldItem} className="input-shell-accent">
                         <User className="mr-3 shrink-0 text-slate-400" size={20} strokeWidth={1.5} />
                         <input
                           type="text"
@@ -582,8 +715,8 @@ const Login = () => {
                           className="input-field"
                           onChange={handleInputChange}
                         />
-                      </div>
-                      <div className="input-shell-accent">
+                      </motion.div>
+                      <motion.div variants={fieldItem} className="input-shell-accent">
                         <Mail className="mr-3 shrink-0 text-slate-400" size={20} strokeWidth={1.5} />
                         <input
                           type="email"
@@ -593,8 +726,8 @@ const Login = () => {
                           className="input-field"
                           onChange={handleInputChange}
                         />
-                      </div>
-                      <div className="input-shell-accent">
+                      </motion.div>
+                      <motion.div variants={fieldItem} className="input-shell-accent">
                         <Lock className="mr-3 shrink-0 text-slate-400" size={20} strokeWidth={1.5} />
                         <input
                           type={showPassword ? "text" : "password"}
@@ -612,8 +745,8 @@ const Login = () => {
                         >
                           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
-                      </div>
-                      <div className="input-shell-accent">
+                      </motion.div>
+                      <motion.div variants={fieldItem} className="input-shell-accent">
                         <Smartphone className="mr-3 shrink-0 text-slate-400" size={20} strokeWidth={1.5} />
                         <input
                           type="tel"
@@ -623,21 +756,27 @@ const Login = () => {
                           className="input-field"
                           onChange={(e) => setPhone(e.target.value)}
                         />
-                      </div>
-                    </div>
+                      </motion.div>
+                    </motion.div>
 
                     {FIREBASE_CONFIGURED && (
                       <div className="mt-4 flex w-full justify-center">
                         <div id="recaptcha-container-signup" />
-                      </div>
-                    )}
+                </div>
+              )}
 
-                    <button type="submit" disabled={loading} className={`${activeBtn} mt-6 w-full py-3.5`}>
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      whileHover={prefersReducedMotion || loading ? undefined : { scale: 1.02, y: -1 }}
+                      whileTap={loading ? undefined : { scale: 0.98 }}
+                      className={`${activeBtn} mt-6 w-full py-3.5`}
+                    >
                       {FIREBASE_CONFIGURED
                         ? (loading ? "Sending OTP..." : "Get OTP & Sign Up")
                         : (loading ? "Creating Account..." : "Create Account")}{" "}
                       <CheckCircle size={18} />
-                    </button>
+                    </motion.button>
                     {FIREBASE_CONFIGURED && !isCaptchaSolved && (
                       <p className="mt-2 text-xs font-medium text-slate-500">
                         Complete CAPTCHA, then click Get OTP.
@@ -658,46 +797,53 @@ const Login = () => {
                 ) : (
                   <motion.div
                     key="otp-form"
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -16 }}
-                    transition={{ duration: 0.3 }}
+                    initial={formMotion.initial}
+                    animate={formMotion.animate}
+                    exit={formMotion.exit}
+                    transition={formMotion.transition}
                     className="flex w-full max-w-[320px] flex-col items-center text-center"
                   >
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-iqGreen/15">
+                    <motion.div
+                      className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-iqGreen/15"
+                      initial={prefersReducedMotion ? false : { scale: 0.7, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={springSnappy}
+                    >
                       <MessageSquare className="text-iqGreen" size={32} />
-                    </div>
+                    </motion.div>
                     <h2 className="mb-2 text-2xl font-extrabold text-slate-800">Verify OTP</h2>
                     <p className="mb-6 text-sm text-slate-500">
                       Enter the 6-digit code sent to {phone}
                     </p>
 
                     <div className="mb-6 w-full max-w-[250px]">
-                      <input
-                        type="text"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value)}
-                        placeholder="123456"
-                        maxLength={6}
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="123456"
+                  maxLength={6}
                         className="w-full border-b-2 border-slate-300 bg-transparent py-3 text-center text-3xl font-bold tracking-widest outline-none focus:border-iqGreen"
-                      />
-                    </div>
+                />
+              </div>
 
-                    <button
+                    <motion.button
                       type="button"
                       onClick={verifySignupOtp}
                       disabled={loading}
+                      whileHover={prefersReducedMotion || loading ? undefined : { scale: 1.02, y: -1 }}
+                      whileTap={loading ? undefined : { scale: 0.98 }}
                       className={`${activeBtn} w-full max-w-[250px] py-3.5`}
                     >
-                      {loading ? "Verifying..." : "Verify & Create"}
-                    </button>
+                {loading ? "Verifying..." : "Verify & Create"}
+                    </motion.button>
                     <button
                       type="button"
                       onClick={() => setShowSignupOtpInput(false)}
                       className="mt-4 text-xs font-bold text-slate-400 hover:underline"
                     >
                       Change Number
-                    </button>
+              </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -706,33 +852,40 @@ const Login = () => {
         )}
       </AnimatePresence>
 
-      {toast.show && (
-        <div
-          className="fixed top-5 right-5 z-[60] flex animate-fade-in items-center gap-3 rounded-xl border border-slate-100 bg-white px-6 py-4 shadow-lift"
-          style={{
-            borderLeftWidth: 4,
-            borderLeftColor: toast.type === "success" ? "#8DC63F" : "#ef4444",
-          }}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle className="text-iqGreen" size={24} />
-          ) : (
-            <AlertCircle className="text-red-500" size={24} />
-          )}
-          <div>
-            <h4 className="text-sm font-bold text-slate-800">
-              {toast.type === "success" ? "Success" : "Error"}
-            </h4>
-            <p className="text-xs text-slate-500">{toast.message}</p>
-          </div>
-          <button
-            onClick={() => setToast({ ...toast, show: false })}
-            className="ml-2 text-slate-400 hover:text-slate-600"
+      <AnimatePresence>
+        {toast.show && (
+          <motion.div
+            key="login-toast"
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 28, y: -8 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 20, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            className="fixed top-5 right-5 z-[60] flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-6 py-4 shadow-lift"
+            style={{
+              borderLeftWidth: 4,
+              borderLeftColor: toast.type === "success" ? "#8DC63F" : "#ef4444",
+            }}
           >
-            <X size={16} />
-          </button>
-        </div>
-      )}
+            {toast.type === "success" ? (
+              <CheckCircle className="text-iqGreen" size={24} />
+            ) : (
+              <AlertCircle className="text-red-500" size={24} />
+            )}
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">
+                {toast.type === "success" ? "Success" : "Error"}
+              </h4>
+              <p className="text-xs text-slate-500">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast({ ...toast, show: false })}
+              className="ml-2 text-slate-400 hover:text-slate-600"
+            >
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

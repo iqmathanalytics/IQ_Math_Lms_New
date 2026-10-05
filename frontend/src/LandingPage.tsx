@@ -22,10 +22,10 @@ const RAZORPAY_PAYLINK_URL = "https://razorpay.me/iqmathtechnologies";
 const SLIDES = [
   {
     id: 0,
-    line1: "Learn Every Day & Any",
+    line1: "Learn Every Day With",
     line2: "New Skills Online",
-    line3: "With Our iQmath Platform.",
-    sub: "Future-proof your career with world-class education.",
+    line3: "On Our IQ Math Platform.",
+    sub: "Websites, apps, education platforms, and training — built for enterprise.",
     highlightColor: "text-[#8DC63F]",
     buttonColor: "bg-[#8DC63F]",
     panelGradient: "from-[#6FA32E] via-[#8DC63F] to-[#4F7A22]",
@@ -36,7 +36,7 @@ const SLIDES = [
     line1: "We Have Collected The",
     line2: "Best Online Courses",
     line3: "For Your Future.",
-    sub: "Curated content designed for the modern learner.",
+    sub: "AI-powered learning products and outcome-driven training across India, Malaysia, USA, and Australia.",
     highlightColor: "text-[#0088C7]",
     buttonColor: "bg-[#0088C7]",
     panelGradient: "from-[#006FA3] via-[#0088C7] to-[#005680]",
@@ -44,25 +44,25 @@ const SLIDES = [
   },
 ];
 
-// --- 📝 SECTION DATA ---
+// --- 📝 SECTION DATA (aligned with www.iqmath.in) ---
 const DYNAMIC_TEXTS = [
-  "Discover a transformative learning experience with iQmath's online courses, meticulously crafted for real-life applicability. Our curriculum seamlessly integrates theory with practical insights.",
-  "Our expert-led sessions focus on industry-relevant skills, ensuring you stay ahead of the curve. Join thousands of successful students who have upgraded their careers.",
-  "Experience interactive learning with live doubt-clearing sessions and hands-on projects. We prioritize your growth with personalized mentorship and community support."
+  "IQMath Technologies is a full-service technology partner — not just an EdTech vendor. We develop custom websites and mobile applications, build AI-powered learning products, and run training programs for students, corporates, and colleges.",
+  "Whether you need a website or app built, an EdTech platform deployed, or a training program delivered — we cover all three, with scale, security, and measurable impact across India, Malaysia, USA, and Australia.",
+  "From institution-grade LMS and assessments to AI bots and custom workflows — production-ready systems for schools, colleges, corporates, and global brands."
 ];
 
 const VIDEOS = [
-  { id: "q6kVdZQLe54", title: "The Report | Hacker Rank Problem | Joins & SQL" },
+  { id: "q6kVdZQLe54", title: "The Report | HackerRank Problem | Joins & SQL" },
   { id: "65aaipcziy0", title: "How to Install MySQL Workbench in Windows" },
   { id: "MC83S5IAQk8", title: "Connect to Database (MySQL) Using Excel" },
 ];
 
 const FEATURES = [
-  { icon: <BookOpen size={24} />, label: "10+ Online Courses" },
+  { icon: <BookOpen size={24} />, label: "LMS & Online Courses" },
   { icon: <Infinity size={24} />, label: "Lifetime Access" },
-  { icon: <Award size={24} />, label: "Value For Money" },
-  { icon: <Headset size={24} />, label: "Lifetime Support" },
-  { icon: <Users size={24} />, label: "Community Support" },
+  { icon: <Award size={24} />, label: "Startup India Recognized" },
+  { icon: <Headset size={24} />, label: "Enterprise Training" },
+  { icon: <Users size={24} />, label: "Global Client Network" },
 ];
 
 const TESTIMONIALS = [
@@ -231,7 +231,7 @@ const LandingPage = () => {
       {/* ================= SECTION 3: LIVE CLASS SECTION ================= */}
       <div className="w-full bg-white py-16 lg:py-24 px-6 lg:px-24 flex flex-col lg:flex-row items-center gap-12 lg:gap-16 border-t border-slate-100">
         <div className="w-full lg:w-1/2 text-center lg:text-left">
-          <h2 className="text-3xl lg:text-5xl font-black text-[#0f172a] mb-8 leading-tight">Online Learning Designed For Real Life</h2>
+          <h2 className="text-3xl lg:text-5xl font-black text-[#0f172a] mb-8 leading-tight">Websites, Apps, Education & Training</h2>
           <div className="min-h-[100px] lg:min-h-[120px] mb-8">
             <AnimatePresence mode="wait">
               <motion.p key={textIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="text-lg text-slate-500 leading-relaxed">
@@ -240,7 +240,7 @@ const LandingPage = () => {
             </AnimatePresence>
           </div>
           <div className="space-y-4 mb-10 inline-block text-left">
-            {["Easy Online Learning Platform", "98% Course Completion Rates", "Friendly Environments & Teachers"].map((item, i) => (
+            {["Web & App Development", "AI-Powered EdTech Products", "Student, Corporate & College Training"].map((item, i) => (
               <div key={i} className="flex items-center gap-3"><CheckCircle size={20} className="text-[#0088C7] fill-blue-50" /><span className="text-slate-700 font-bold text-sm">{item}</span></div>
             ))}
           </div>
@@ -318,12 +318,63 @@ const LandingPage = () => {
       {/* ================= SECTION 6: FOOTER ================= */}
       <footer className="w-full bg-[#020617] text-slate-300 py-12 lg:py-16 px-6 lg:px-24 border-t border-slate-800">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-          <div><h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">About Company<span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span></h4><BrandLogo size="md" className="mt-1" /></div>
-          <div><h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">Quick Links<span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span></h4><ul className="space-y-3 text-sm font-medium">{["Marketing", "Data Science", "Business"].map((item) => (<li key={item} className="hover:text-[#0088C7] cursor-pointer transition-colors">{item}</li>))}</ul></div>
-          <div><h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">Resources<span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span></h4><ul className="space-y-3 text-sm font-medium"><li><a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer" className="hover:text-[#0088C7] transition-colors">GitHub Repository</a></li><li><a href={RAZORPAY_PAYLINK_URL} target="_blank" rel="noreferrer" className="hover:text-[#0088C7] transition-colors">Razorpay Payment Link</a></li><li className="hover:text-[#0088C7] cursor-pointer transition-colors">Documentation</li></ul></div>
-          <div><h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">Get in touch!<span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span></h4><ul className="space-y-4 text-sm"><li className="flex gap-3"><MapPin size={18} className="text-[#0088C7] flex-shrink-0" /> <span className="flex-1">Chennai, Tamil Nadu</span></li><li className="flex gap-3"><Mail size={18} className="text-[#0088C7] flex-shrink-0" /> iqmathindia@gmail.com</li></ul></div>
+          <div className="md:col-span-2 lg:col-span-2">
+            <h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">
+              About Company
+              <span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span>
+            </h4>
+            <BrandLogo size="md" showTagline className="mt-1" />
+            <p className="mt-4 text-sm font-semibold text-white/90 leading-snug">
+              Websites, apps, education platforms, and training — built for enterprise.
+            </p>
+            <p className="mt-3 text-sm text-slate-400 leading-relaxed max-w-md">
+              IQMath Technologies designs and ships custom websites and mobile apps, builds AI-powered learning products,
+              and runs outcome-driven training for students, corporates, and colleges across India, Malaysia, USA, and Australia.
+              Startup India Recognized · StartupTN Registered.
+            </p>
+            <a
+              href="https://www.iqmath.in"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block text-sm font-bold text-[#0088C7] hover:underline"
+            >
+              www.iqmath.in
+            </a>
+          </div>
+          <div className="hidden" aria-hidden>
+            <h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">Quick Links<span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span></h4>
+            <ul className="space-y-3 text-sm font-medium">{["Marketing", "Data Science", "Business"].map((item) => (<li key={item} className="hover:text-[#0088C7] cursor-pointer transition-colors">{item}</li>))}</ul>
+          </div>
+          <div className="hidden" aria-hidden>
+            <h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">Resources<span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span></h4>
+            <ul className="space-y-3 text-sm font-medium">
+              <li><a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer" className="hover:text-[#0088C7] transition-colors">GitHub Repository</a></li>
+              <li><a href={RAZORPAY_PAYLINK_URL} target="_blank" rel="noreferrer" className="hover:text-[#0088C7] transition-colors">Razorpay Payment Link</a></li>
+              <li className="hover:text-[#0088C7] cursor-pointer transition-colors">Documentation</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white text-lg font-bold mb-6 relative pb-2 inline-block">
+              Get in touch!
+              <span className="absolute bottom-0 left-0 w-8 h-1 bg-[#0088C7] rounded-full"></span>
+            </h4>
+            <ul className="space-y-4 text-sm">
+              <li className="flex gap-3">
+                <MapPin size={18} className="text-[#0088C7] flex-shrink-0" />
+                <span className="flex-1">Chennai, Tamil Nadu</span>
+              </li>
+              <li className="flex gap-3">
+                <Mail size={18} className="text-[#0088C7] flex-shrink-0" />
+                <a href="mailto:contact@iqmath.in" className="hover:text-[#0088C7] transition-colors">
+                  contact@iqmath.in
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div className="pt-8 border-t border-slate-800 text-center text-xs text-slate-500"><p>Copyright © 2023 iQmath All Rights Reserved.</p></div>
+        <div className="pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
+          <p>Copyright © 2026 IQMath Technologies. All Rights Reserved.</p>
+        </div>
       </footer>
 
       {/* SCROLL TO TOP */}

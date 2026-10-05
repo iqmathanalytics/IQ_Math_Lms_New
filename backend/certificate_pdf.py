@@ -1,18 +1,25 @@
 """
-Certificate PDF generation using the IQMath Canva template.
+Certificate PDF generation — FINAL locked structure for ALL users/courses.
 
-Background chrome (logo, titles, signatures, partner logos) lives in
-certificate_assets/certificate-template.png. Overlay fields:
-  - Certificate number (top-right)
-  - Issued date (top-right, under number)
-  - Recipient name (under “THIS IS TO CERTIFY THAT”)
-  - Course completion body (above signature band)
+Every download from /api/v1/generate-pdf/{course_id} uses this exact layout.
+Do not add per-course or per-user format overrides.
+
+Background chrome (logo, titles, signatures, partner logos):
+  certificate_assets/certificate-template.png
+
+Overlay fields (FINAL_CERTIFICATE_FORMAT):
+  - Certificate ID (top-right, Alice 14pt)
+  - Issued date (top-right, Alice 13pt)
+  - Recipient name (below “THIS IS TO CERTIFY THAT”)
+  - Full body paragraph (15pt, justified, never truncated)
 """
 from __future__ import annotations
 
+import copy
 import io
 import os
-from typing import List, Optional, Tuple
+from types import MappingProxyType
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -24,26 +31,42 @@ from reportlab.pdfgen import canvas
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "certificate_assets")
 TEMPLATE_PNG = os.path.join(ASSETS_DIR, "certificate-template.png")
+ALICE_FONT_PATH = os.path.join(ASSETS_DIR, "Alice-Regular.ttf")
 WIN_FONTS = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
 
 # A4 landscape points ≈ 842 × 595
 PAGE_W, PAGE_H = landscape(A4)
 
+# Version stamp for the locked final structure (bump only when intentionally changing layout)
+FINAL_CERTIFICATE_STRUCTURE_VERSION = "2026-10-05-final"
+
 # ---------------------------------------------------------------------------
-# DEFAULT certificate format — used for EVERY generated certificate.
-# Do not vary per course. Sizes are fixed (pt); boxes are % from page top.
+# FINAL certificate format — used for EVERY generated certificate.
+# Boxes are % from page top; sizes are pt. Mutable copies are returned via
+# get_final_certificate_format(); runtime code must not invent alternate layouts.
 # ---------------------------------------------------------------------------
-DEFAULT_CERTIFICATE_FORMAT = {
-    "certId": {"x": 54.0, "y": 3.2, "w": 40.0, "h": 4.8, "size": 10.0},
-    "issuedDate": {"x": 54.0, "y": 7.8, "w": 40.0, "h": 4.4, "size": 10.0},
+_FINAL_CERTIFICATE_FORMAT_RAW: Dict[str, Dict[str, float]] = {
+    # Certificate ID + Issued Date — Alice font (Alice-Regular.ttf)
+    "certId": {"x": 54.0, "y": 2.8, "w": 40.0, "h": 5.2, "size": 14.0},
+    "issuedDate": {"x": 54.0, "y": 7.6, "w": 40.0, "h": 4.8, "size": 13.0},
     # Below “THIS IS TO CERTIFY THAT”, above body
-    "recipient": {"x": 12.0, "y": 33.5, "w": 76.0, "h": 9.0, "size": 34.0},
-    # Between name and signature band — body content always 12pt
-    "body": {"x": 12.0, "y": 43.5, "w": 76.0, "h": 17.5, "size": 12.0},
+    "recipient": {"x": 12.0, "y": 35.8, "w": 76.0, "h": 8.0, "size": 34.0},
+    # Between name and signature band — full body, 15pt, justified
+    "body": {"x": 12.0, "y": 44.5, "w": 76.0, "h": 19.5, "size": 15.0},
 }
 
-# Alias used by drawing helpers
-LAYOUT = DEFAULT_CERTIFICATE_FORMAT
+FINAL_CERTIFICATE_FORMAT: Mapping[str, Mapping[str, float]] = MappingProxyType(
+    {key: MappingProxyType(dict(val)) for key, val in _FINAL_CERTIFICATE_FORMAT_RAW.items()}
+)
+
+# Back-compat aliases (same final structure)
+DEFAULT_CERTIFICATE_FORMAT = FINAL_CERTIFICATE_FORMAT
+LAYOUT = FINAL_CERTIFICATE_FORMAT
+
+
+def get_final_certificate_format() -> Dict[str, Dict[str, float]]:
+    """Deep copy of the locked final layout (safe to read; changes are discarded)."""
+    return copy.deepcopy(_FINAL_CERTIFICATE_FORMAT_RAW)
 
 NAME_COLOR = colors.Color(0x2C / 255, 0x2C / 255, 0x2C / 255)
 BODY_COLOR = colors.Color(0x3A / 255, 0x3A / 255, 0x3A / 255)
@@ -65,12 +88,13 @@ def _try_register(family: str, *paths: str) -> Optional[str]:
     return None
 
 
-def _register_fonts() -> Tuple[str, str, str]:
-    """Prefer Georgia / Rockwell (sample look); fall back to Times / Helvetica."""
+def _register_fonts() -> Tuple[str, str, str, str]:
+    """Body/name fonts + Alice for certificate ID / issued date."""
     global _FONTS_REGISTERED
     regular = "Times-Roman"
     bold = "Times-Bold"
     sans = "Helvetica"
+    alice = "Times-Roman"
 
     if not _FONTS_REGISTERED:
         bold = (
@@ -103,6 +127,14 @@ def _register_fonts() -> Tuple[str, str, str]:
             )
             or sans
         )
+        alice = (
+            _try_register(
+                "CertAlice",
+                os.path.join(ASSETS_DIR, "Alice-Regular.ttf"),
+                os.path.join(ASSETS_DIR, "Alice.ttf"),
+            )
+            or sans
+        )
         _FONTS_REGISTERED = True
     else:
         registered = set(pdfmetrics.getRegisteredFontNames())
@@ -112,8 +144,19 @@ def _register_fonts() -> Tuple[str, str, str]:
             regular = "CertBody"
         if "CertSans" in registered:
             sans = "CertSans"
+        if "CertAlice" in registered:
+            alice = "CertAlice"
+        else:
+            alice = (
+                _try_register(
+                    "CertAlice",
+                    os.path.join(ASSETS_DIR, "Alice-Regular.ttf"),
+                    os.path.join(ASSETS_DIR, "Alice.ttf"),
+                )
+                or sans
+            )
 
-    return regular, bold, sans
+    return regular, bold, sans, alice
 
 
 def _box(region: dict) -> Tuple[float, float, float, float]:
@@ -175,7 +218,38 @@ def _wrap_to_width(c: canvas.Canvas, text: str, font: str, size: float, max_widt
     return lines
 
 
-def _draw_wrapped_centered(
+def _draw_justified_line(
+    c: canvas.Canvas,
+    line: str,
+    *,
+    x: float,
+    y: float,
+    width: float,
+    font: str,
+    size: float,
+    justify: bool,
+) -> None:
+    """Draw one line; justify spreads words to both left and right edges."""
+    words = line.split()
+    if not words:
+        return
+    c.setFont(font, size)
+    if not justify or len(words) == 1:
+        c.drawString(x, y, line)
+        return
+
+    word_widths = [c.stringWidth(w, font, size) for w in words]
+    total = sum(word_widths)
+    gaps = len(words) - 1
+    extra = max(0.0, width - total)
+    gap = extra / gaps
+    cursor_x = x
+    for i, word in enumerate(words):
+        c.drawString(cursor_x, y, word)
+        cursor_x += word_widths[i] + gap
+
+
+def _draw_wrapped_justified(
     c: canvas.Canvas,
     text: str,
     *,
@@ -186,29 +260,45 @@ def _draw_wrapped_centered(
     font: str,
     size: float,
     color,
-    leading_factor: float = 1.38,
+    leading_factor: float = 1.34,
 ) -> None:
-    """Wrap at a fixed font size (default body = 12pt). Never shrinks."""
+    """
+    Full body text at a fixed size (15pt default). Never truncates.
+    Justified alignment (flush left + right); last line left-aligned.
+    Leading tightens slightly only if needed to fit the box.
+    """
     working_size = float(size)
     lines = _wrap_to_width(c, text, font, working_size, width)
+    if not lines:
+        return
+
     leading = working_size * leading_factor
-
-    max_lines = max(1, int(height / leading))
-    if len(lines) > max_lines:
-        lines = lines[:max_lines]
-        if len(lines[-1]) > 3:
-            lines[-1] = lines[-1].rstrip(".,; ") + "…"
-
     block_h = leading * len(lines)
-    cursor = y + height - working_size * 0.85
-    if block_h < height:
-        cursor = y + height - ((height - block_h) * 0.18) - working_size * 0.85
+    # Fit full content by easing line spacing — never cut words
+    min_leading = working_size * 1.18
+    while block_h > height and leading > min_leading:
+        leading -= 0.25
+        block_h = leading * len(lines)
 
-    c.setFont(font, working_size)
+    # Top-align within the body band with a small inset
+    cursor = y + height - working_size * 0.9
+    if block_h < height:
+        # slight top padding so text sits cleanly under the name
+        cursor = y + height - min(working_size * 0.35, (height - block_h) * 0.25) - working_size * 0.85
+
     c.setFillColor(color)
-    cx = x + width / 2.0
-    for line in lines:
-        c.drawCentredString(cx, cursor, line)
+    last_i = len(lines) - 1
+    for i, line in enumerate(lines):
+        _draw_justified_line(
+            c,
+            line,
+            x=x,
+            y=cursor,
+            width=width,
+            font=font,
+            size=working_size,
+            justify=(i != last_i),
+        )
         cursor -= leading
 
 
@@ -218,11 +308,24 @@ def create_certificate_pdf(
     date_str: str,
     certificate_id: str,
     course_type: Optional[str] = None,
+    **_ignored: Any,
 ) -> io.BytesIO:
+    """
+    Build the FINAL structured certificate PDF for any user/course.
+
+    Only student name, course title, issue date, and certificate ID vary.
+    Layout, fonts, sizes, and alignment are locked (FINAL_CERTIFICATE_FORMAT).
+    Extra kwargs (e.g. custom format) are ignored so every cert stays identical.
+    """
     if not os.path.isfile(TEMPLATE_PNG):
         raise FileNotFoundError(
             f"Certificate template missing: {TEMPLATE_PNG}. "
             "Place certificate-template.png in certificate_assets/."
+        )
+    if not os.path.isfile(ALICE_FONT_PATH):
+        raise FileNotFoundError(
+            f"Alice font missing: {ALICE_FONT_PATH}. "
+            "Required for the final certificate ID / issued-date style."
         )
 
     # Always read latest template from disk (no stale cache across restarts)
@@ -235,7 +338,12 @@ def create_certificate_pdf(
 
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=(PAGE_W, PAGE_H))
-    regular, bold, sans = _register_fonts()
+    regular, bold, sans, alice = _register_fonts()
+    if alice != "CertAlice":
+        raise RuntimeError(
+            "Final certificate structure requires Alice font (CertAlice). "
+            "Ensure Alice-Regular.ttf is present in certificate_assets/."
+        )
 
     c.drawImage(
         ImageReader(TEMPLATE_PNG),
@@ -247,25 +355,26 @@ def create_certificate_pdf(
         mask="auto",
     )
 
-    layout = DEFAULT_CERTIFICATE_FORMAT  # single default for all certificates
+    # Locked final layout for every certificate — never overridden
+    layout = get_final_certificate_format()
 
-    # Certificate number — top right (fixed 10pt)
+    # Certificate ID — top right (Alice 14pt)
     ix, iy, iw, ih = _box(layout["certId"])
-    id_label = f"Certificate No: {cert_no}"
-    id_size = float(layout["certId"]["size"])  # 10pt default
-    c.setFont(sans, id_size)
+    id_label = f"Certificate ID: {cert_no}"
+    id_size = float(layout["certId"]["size"])
+    c.setFont(alice, id_size)
     c.setFillColor(CERT_ID_COLOR)
     c.drawRightString(ix + iw, iy + ih * 0.28, id_label)
 
-    # Issued date — under certificate number (fixed 10pt)
+    # Issued date — under certificate ID (Alice 13pt)
     dx, dy, dw, dh = _box(layout["issuedDate"])
-    issued_label = f"Issued Date: {issued}"
-    issued_size = float(layout["issuedDate"]["size"])  # 10pt default
-    c.setFont(sans, issued_size)
+    issued_label = f"Issued: {issued}"
+    issued_size = float(layout["issuedDate"]["size"])
+    c.setFont(alice, issued_size)
     c.setFillColor(META_COLOR)
     c.drawRightString(dx + dw, dy + dh * 0.28, issued_label)
 
-    # Recipient name (default placement; may shrink only for very long names)
+    # Recipient name (may shrink only for very long names; position fixed)
     rx, ry, rw, rh = _box(layout["recipient"])
     name = format_recipient_name(student_name)
     name_size = _fit_font_size(c, name, bold, float(layout["recipient"]["size"]), rw * 0.96, min_size=18)
@@ -273,10 +382,10 @@ def create_certificate_pdf(
     c.setFillColor(NAME_COLOR)
     c.drawCentredString(rx + rw / 2.0, ry + rh / 2.0 - name_size * 0.32, name)
 
-    # Body copy — fixed 12pt default for all certificates
+    # Body — full text, 15pt, justified for every certificate
     bx, by, bw, bh = _box(layout["body"])
     body = build_body_text(course_name, course_type)
-    _draw_wrapped_centered(
+    _draw_wrapped_justified(
         c,
         body,
         x=bx,
@@ -284,7 +393,7 @@ def create_certificate_pdf(
         width=bw,
         height=bh,
         font=regular,
-        size=float(layout["body"]["size"]),  # 12pt
+        size=float(layout["body"]["size"]),
         color=BODY_COLOR,
     )
 
