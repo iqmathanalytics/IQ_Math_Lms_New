@@ -18,21 +18,21 @@ const heightClasses = {
 } as const;
 
 /**
- * IQMath brand mark (image). Transparent PNG works on light and dark surfaces.
+ * IQMath brand mark (image). Always the light color PNG (transparent), never the dark/black plate.
  */
 const BrandLogo: React.FC<BrandLogoProps> = ({
     size = "md",
-    hiRes = false,
     className = "",
 }) => {
-    const src = publicAsset(hiRes ? "iqmath-logo-4k.png" : "iqmath-logo.png");
+    const src = publicAsset("iqmath-logo.png");
 
     return (
         <img
             src={src}
             alt="IQMath Technologies"
-            className={`w-auto object-contain object-left ${heightClasses[size]} ${className}`}
+            className={`bg-transparent w-auto object-contain object-left ${heightClasses[size]} ${className}`}
             draggable={false}
+            decoding="async"
         />
     );
 };
