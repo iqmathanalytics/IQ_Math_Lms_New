@@ -59,10 +59,10 @@ const FastImage = ({
       <img
         src={currentSrc}
         alt={alt}
-        className={`${fitClass} ${className} ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-200`}
+        className={`${fitClass} ${className} ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-100`}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
-        fetchPriority={priority ? "high" : "auto"}
+        fetchPriority={priority ? "high" : "low"}
         {...rest}
         onLoad={(e) => {
           markImageWarmed(currentSrc);

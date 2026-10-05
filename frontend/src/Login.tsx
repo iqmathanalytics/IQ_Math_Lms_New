@@ -429,35 +429,12 @@ const Login = () => {
         initial: { opacity: 0, y: 28, filter: "blur(6px)" },
         animate: { opacity: 1, y: 0, filter: "blur(0px)" },
         exit: { opacity: 0, y: -14, filter: "blur(4px)" },
-        transition: { duration: 0.38, ease: easeOut },
+        transition: { duration: 0.22, ease: easeOut },
   };
 
   return (
     <div className="auth-canvas student-login">
       <TechAuthBackground />
-
-      {!prefersReducedMotion && !authPanel && (
-        <>
-          <motion.span
-            aria-hidden
-            className="pointer-events-none absolute left-[12%] top-[22%] z-[1] h-2 w-2 rounded-full bg-iqBlue/40"
-            animate={{ y: [0, -14, 0], opacity: [0.35, 0.8, 0.35] }}
-            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.span
-            aria-hidden
-            className="pointer-events-none absolute right-[16%] top-[30%] z-[1] h-1.5 w-1.5 rounded-full bg-iqGreen/50"
-            animate={{ y: [0, 12, 0], opacity: [0.3, 0.75, 0.3] }}
-            transition={{ duration: 6.2, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-          />
-          <motion.span
-            aria-hidden
-            className="pointer-events-none absolute bottom-[24%] left-[22%] z-[1] h-1 w-1 rounded-full bg-iqBlue/30"
-            animate={{ y: [0, -10, 0], x: [0, 6, 0], opacity: [0.25, 0.7, 0.25] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
-          />
-        </>
-      )}
 
       {/* Admin Access entry hidden from student login UI */}
 

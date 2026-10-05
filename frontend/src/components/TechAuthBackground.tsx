@@ -1,8 +1,7 @@
 import React, { memo } from "react";
 
 /**
- * GPU-friendly tech canvas — CSS-only transforms/opacity (no Framer loops).
- * Keeps the login page smooth without main-thread animation cost.
+ * Lightweight auth canvas — fewer animated nodes, GPU-friendly transforms only.
  */
 const TechAuthBackground: React.FC = () => (
   <div className="auth-tech-bg pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -11,7 +10,6 @@ const TechAuthBackground: React.FC = () => (
 
     <div className="auth-tech-orb auth-tech-orb--blue" />
     <div className="auth-tech-orb auth-tech-orb--green" />
-    <div className="auth-tech-orb auth-tech-orb--center" />
 
     <svg
       className="auth-tech-circuits absolute inset-0 h-full w-full"
@@ -40,32 +38,11 @@ const TechAuthBackground: React.FC = () => (
         strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <path
-        className="auth-circuit-path auth-circuit-path--c"
-        d="M200 700 V520 H360 V300 H560"
-        fill="none"
-        stroke="#0088C7"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
-      <path
-        className="auth-circuit-path auth-circuit-path--d"
-        d="M1000 100 V260 H820 V400"
-        fill="none"
-        stroke="#8DC63F"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
     </svg>
 
-    <span className="auth-tech-node" style={{ left: "14%", top: "20%" }} />
-    <span className="auth-tech-node auth-tech-node--green" style={{ left: "78%", top: "24%", animationDelay: "0.8s" }} />
-    <span className="auth-tech-node auth-tech-node--green" style={{ left: "24%", top: "70%", animationDelay: "1.4s" }} />
-    <span className="auth-tech-node" style={{ left: "86%", top: "66%", animationDelay: "0.4s" }} />
-    <span className="auth-tech-node" style={{ left: "50%", top: "14%", animationDelay: "1.1s" }} />
-    <span className="auth-tech-node auth-tech-node--green" style={{ left: "60%", top: "80%", animationDelay: "1.8s" }} />
-
-    <div className="auth-tech-scan" />
+    <span className="auth-tech-node" style={{ left: "18%", top: "22%" }} />
+    <span className="auth-tech-node auth-tech-node--green" style={{ left: "78%", top: "28%", animationDelay: "1s" }} />
+    <span className="auth-tech-node" style={{ left: "62%", top: "72%", animationDelay: "1.6s" }} />
   </div>
 );
 

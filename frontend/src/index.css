@@ -156,7 +156,7 @@ body {
     -webkit-mask-image: radial-gradient(ellipse at center, #000 32%, transparent 76%);
     mask-image: radial-gradient(ellipse at center, #000 32%, transparent 76%);
     will-change: transform;
-    animation: authGridDrift 36s linear infinite;
+    animation: authGridDrift 60s linear infinite;
   }
 
   .auth-tech-orb {
@@ -173,7 +173,7 @@ body {
     width: 46%;
     height: 46%;
     background: radial-gradient(circle, rgba(0, 136, 199, 0.28) 0%, rgba(0, 136, 199, 0.08) 42%, transparent 70%);
-    animation: authOrbBlue 18s ease-in-out infinite;
+    animation: authOrbBlue 32s ease-in-out infinite;
   }
 
   .auth-tech-orb--green {
@@ -182,7 +182,7 @@ body {
     width: 48%;
     height: 48%;
     background: radial-gradient(circle, rgba(141, 198, 63, 0.3) 0%, rgba(141, 198, 63, 0.1) 42%, transparent 70%);
-    animation: authOrbGreen 20s ease-in-out infinite;
+    animation: authOrbGreen 36s ease-in-out infinite;
   }
 
   .auth-tech-orb--center {
@@ -191,7 +191,7 @@ body {
     width: 16rem;
     height: 16rem;
     background: radial-gradient(circle, rgba(0, 136, 199, 0.16) 0%, transparent 68%);
-    animation: authOrbCenter 14s ease-in-out infinite;
+    animation: authOrbCenter 28s ease-in-out infinite;
   }
 
   .auth-tech-circuits {
@@ -200,12 +200,12 @@ body {
 
   .auth-circuit-path {
     stroke-dasharray: 10 14;
-    animation: authCircuitFlow 10s linear infinite;
+    animation: authCircuitFlow 18s linear infinite;
   }
 
-  .auth-circuit-path--b { animation-duration: 13s; animation-direction: reverse; }
-  .auth-circuit-path--c { stroke-dasharray: 5 10; animation-duration: 8s; opacity: 0.75; }
-  .auth-circuit-path--d { stroke-dasharray: 5 10; animation-duration: 9s; animation-direction: reverse; opacity: 0.8; }
+  .auth-circuit-path--b { animation-duration: 22s; animation-direction: reverse; }
+  .auth-circuit-path--c { stroke-dasharray: 5 10; animation-duration: 16s; opacity: 0.75; }
+  .auth-circuit-path--d { stroke-dasharray: 5 10; animation-duration: 17s; animation-direction: reverse; opacity: 0.8; }
 
   .auth-tech-node {
     position: absolute;
@@ -217,7 +217,7 @@ body {
     background: #0088C7;
     box-shadow: 0 0 10px rgba(0, 136, 199, 0.55);
     will-change: transform, opacity;
-    animation: authNodePulse 4.2s ease-in-out infinite;
+    animation: authNodePulse 6s ease-in-out infinite;
   }
 
   .auth-tech-node--green {

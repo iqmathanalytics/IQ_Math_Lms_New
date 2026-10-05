@@ -19,16 +19,37 @@ type OptimizeOpts = {
   fit?: "contain" | "cover" | "max";
 };
 
+const PROXY_HOSTS = [
+  "postimg.cc",
+  "ibb.co",
+  "imgur.com",
+  "freepik.com",
+  "img.freepik.com",
+  "cloudfront.net",
+  "amazonaws.com",
+];
+
+function hostNeedsApiThumb(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return PROXY_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+}
+
+/** Route heavy hosts through our API resize proxy → small WebP cards. */
+function viaApiThumb(resolved: string, width: number, quality: number): string {
+  const base = API_BASE_URL.replace(/\/+$/, "");
+  return `${base}/thumb?url=${encodeURIComponent(resolved)}&w=${width}&q=${quality}`;
+}
+
 /**
- * Shrink remote CDN URLs when the host supports it.
- * (postimg / ibb have no public resize API — callers should use object-contain + prefetch.)
+ * Shrink remote images for cards. Heavy hosts (postimg/ibb ~1MB) go through
+ * `/api/v1/thumb` so production cards load ~30–80KB WebP instead of full PNG.
  */
 export function optimizeImageUrl(url?: string | null, opts: OptimizeOpts = {}): string {
   const resolved = resolveImageUrl(url);
   if (!resolved) return "";
 
-  const width = opts.width ?? 640;
-  const quality = opts.quality ?? 72;
+  const width = Math.min(opts.width ?? 480, 960);
+  const quality = opts.quality ?? 68;
   const fit = opts.fit ?? "contain";
 
   try {
@@ -43,12 +64,6 @@ export function optimizeImageUrl(url?: string | null, opts: OptimizeOpts = {}): 
       return u.toString();
     }
 
-    // Freepik CDN
-    if (u.hostname.includes("freepik.com") || u.hostname.includes("img.freepik.com")) {
-      u.searchParams.set("w", String(Math.min(width, 800)));
-      return u.toString();
-    }
-
     // Google Drive → native thumbnail endpoint
     if (u.hostname.includes("drive.google.com")) {
       const fileMatch = u.pathname.match(/\/d\/([^/]+)/) || u.searchParams.get("id");
@@ -56,6 +71,11 @@ export function optimizeImageUrl(url?: string | null, opts: OptimizeOpts = {}): 
       if (id) {
         return `https://drive.google.com/thumbnail?id=${id}&sz=w${width}`;
       }
+    }
+
+    // postimg / ibb / similar — API thumb proxy (critical for production speed)
+    if (hostNeedsApiThumb(u.hostname)) {
+      return viaApiThumb(resolved, width, quality);
     }
 
     return resolved;
@@ -76,11 +96,11 @@ export function isImageWarmed(src: string) {
 }
 
 /** Prefetch a list of image URLs in the background (low priority). */
-export function prefetchImages(urls: (string | null | undefined)[], width = 480) {
+export function prefetchImages(urls: (string | null | undefined)[], width = 420) {
   if (typeof window === "undefined") return;
-  // Stagger slightly so we don't saturate bandwidth on first paint
-  urls.forEach((raw, index) => {
-    const src = optimizeImageUrl(raw, { width, fit: "contain" });
+  const unique = Array.from(new Set(urls.filter(Boolean))) as string[];
+  unique.forEach((raw, index) => {
+    const src = optimizeImageUrl(raw, { width, fit: "contain", quality: 68 });
     if (!src || isImageWarmed(src)) return;
     window.setTimeout(() => {
       if (isImageWarmed(src)) return;
@@ -88,6 +108,6 @@ export function prefetchImages(urls: (string | null | undefined)[], width = 480)
       img.decoding = "async";
       img.onload = () => markImageWarmed(src);
       img.src = src;
-    }, index * 40);
+    }, index * 60);
   });
 }

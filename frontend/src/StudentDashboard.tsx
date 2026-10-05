@@ -71,8 +71,8 @@ const StatCard = ({ icon: Icon, label, value, delay = 0 }: any) => (
     <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay }}
-        whileHover={{ y: -5 }}
+        transition={{ duration: 0.2, delay }}
+        whileHover={{ y: -3 }}
         className="kpi-card group"
     >
         <div className="rounded-2xl bg-gradient-to-br from-iqBlueLight to-white p-3.5 text-iqBlue shadow-soft ring-1 ring-iqBlue/10 transition-colors group-hover:from-iqBlue group-hover:to-iqBlueDark group-hover:text-white">
@@ -88,9 +88,9 @@ const StatCard = ({ icon: Icon, label, value, delay = 0 }: any) => (
 const CourseCard = ({ course, type, navigate, handleFreeEnroll, openEnrollModal, handleDownloadSyllabus, onPayClick }: any) => {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.2 }}
             className="course-card-shell group"
         >
             {/* ✅ 1. COMPLETED RIBBON */}
@@ -105,9 +105,9 @@ const CourseCard = ({ course, type, navigate, handleFreeEnroll, openEnrollModal,
                     <FastImage
                         src={course.image_url}
                         alt={course.title}
-                        widthHint={480}
+                        widthHint={420}
                         fit="contain"
-                        className="h-full w-full transition-transform duration-500 group-hover:scale-[1.03]"
+                        className="h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
                         skeletonClassName="h-44 w-full"
                     />
                 ) : (
@@ -380,7 +380,7 @@ const StudentDashboard = () => {
             // Warm course thumbnails in the background so cards appear instantly
             prefetchImages(
                 [...myData, ...available].map((c: any) => c.image_url),
-                480
+                420
             );
 
             // Deep-link from share page: enrolled → learning (+ open player), else explore
@@ -1255,11 +1255,11 @@ const StudentDashboard = () => {
 
                 {/* HOME TAB */}
                 {activeTab === "home" && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col gap-8">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col gap-8">
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                             <StatCard icon={BookOpen} label="Courses Enrolled" value={enrolledCourses.length} delay={0} />
-                            <StatCard icon={Award} label="Certificates Earned" value={0} delay={0.08} />
-                            <StatCard icon={Trophy} label="Challenges Attended" value={codeTests.filter(t => t.completed).length} delay={0.16} />
+                            <StatCard icon={Award} label="Certificates Earned" value={0} delay={0.04} />
+                            <StatCard icon={Trophy} label="Challenges Attended" value={codeTests.filter(t => t.completed).length} delay={0.08} />
                         </div>
                         <div>
                             <h3 className="mb-4 text-xl font-bold tracking-tight text-slate-800">Continue Learning</h3>
@@ -1270,14 +1270,14 @@ const StudentDashboard = () => {
                                         return (
                                             <motion.div
                                                 key={course.id}
-                                                initial={{ opacity: 0, y: 12 }}
+                                                initial={{ opacity: 0, y: 8 }}
                                                 animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.1 + idx * 0.08 }}
+                                                transition={{ delay: 0.05 + idx * 0.04, duration: 0.2 }}
                                                 className="flex flex-col items-center gap-6 rounded-2xl border border-slate-100 bg-surface p-6 shadow-soft md:flex-row"
                                             >
                                                 <div className="h-32 w-full overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-iqBlueLight/50 md:w-1/3">
                                                     {course.image_url ? (
-                                                        <FastImage src={course.image_url} alt="" widthHint={360} fit="contain" className="h-full w-full" skeletonClassName="h-full w-full" />
+                                                        <FastImage src={course.image_url} alt="" widthHint={320} fit="contain" className="h-full w-full" skeletonClassName="h-full w-full" />
                                                     ) : (
                                                         <div className="flex h-full items-center justify-center text-slate-300"><BookOpen /></div>
                                                     )}

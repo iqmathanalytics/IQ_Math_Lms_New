@@ -2754,6 +2754,10 @@ def health_check():
     """Render / load-balancer health probe (no auth, no DB)."""
     return {"status": "ok"}
 
+# --- Course thumbnail resize proxy (shrinks 1MB+ postimg/ibb for cards) ---
+from image_proxy import router as _thumb_router
+app.include_router(_thumb_router)
+
 # --- IQNex feature routes (assessments, cert admin, promos, public share) ---
 _iqnex_router = build_iqnex_router(
     get_current_user=get_current_user,
