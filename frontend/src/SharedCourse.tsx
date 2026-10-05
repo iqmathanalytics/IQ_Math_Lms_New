@@ -6,7 +6,7 @@ import API_BASE_URL from "./config";
 import FastImage from "./components/FastImage";
 import BrandLogo from "./components/BrandLogo";
 import { getValidSession, isStudent } from "./utils/session";
-import { resolveStudentCoursePath } from "./utils/courseAccess";
+import { studentPlayerPath } from "./utils/courseAccess";
 
 type PublicCourse = {
   id: number;
@@ -33,29 +33,20 @@ const SharedCourse = () => {
   const [course, setCourse] = useState<PublicCourse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [redirecting, setRedirecting] = useState(false);
 
   const session = getValidSession();
   const studentToken = session && isStudent(session.role) ? session.token : null;
 
-  // Logged-in students: open course modules (player) or courses list
+  // Warm API as soon as share page opens (helps login + player)
+  useEffect(() => {
+    const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+    fetch(`${origin}/health`, { mode: "cors", cache: "no-store" }).catch(() => {});
+  }, []);
+
+  // Logged-in students: open player immediately (no pre-check round-trip)
   useEffect(() => {
     if (!studentToken || !courseId) return;
-
-    let cancelled = false;
-    (async () => {
-      setRedirecting(true);
-      try {
-        const dest = await resolveStudentCoursePath(courseId, studentToken);
-        if (!cancelled) navigate(dest, { replace: true });
-      } catch {
-        if (!cancelled) navigate(`/student-dashboard?course=${courseId}&tab=learning`, { replace: true });
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    navigate(studentPlayerPath(courseId), { replace: true });
   }, [courseId, studentToken, navigate]);
 
   // Guests: load public teaser (login required to learn)
@@ -66,7 +57,9 @@ const SharedCourse = () => {
       setLoading(true);
       setError("");
       try {
-        const res = await axios.get(`${API_BASE_URL}/public/courses/${courseId}`);
+        const res = await axios.get(`${API_BASE_URL}/public/courses/${courseId}`, {
+          timeout: 8000,
+        });
         setCourse(res.data);
       } catch (err: any) {
         setError(
@@ -84,11 +77,11 @@ const SharedCourse = () => {
 
   const loginHref = `/login?course=${courseId || course?.id || ""}&next=course`;
 
-  if (redirecting) {
+  if (studentToken) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-iqBlue/20 border-t-iqBlue" />
-        <p className="text-sm font-semibold text-slate-600">Opening course modules…</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-iqBlue/20 border-t-iqBlue" />
+        <p className="text-sm font-semibold text-slate-600">Opening course…</p>
       </div>
     );
   }

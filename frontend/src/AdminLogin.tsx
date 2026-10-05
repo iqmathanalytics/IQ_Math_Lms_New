@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -20,6 +20,12 @@ const AdminLogin = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const gradientText = "bg-clip-text text-transparent bg-gradient-to-r from-iqBlue to-iqGreen";
+
+  // Warm Render while admin types credentials
+  useEffect(() => {
+    const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+    fetch(`${origin}/health`, { mode: "cors", cache: "no-store" }).catch(() => {});
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -46,8 +52,8 @@ const AdminLogin = () => {
         return;
       }
       saveSession(res.data.access_token, ROLE_INSTRUCTOR);
-      triggerToast("Welcome back, Instructor!", "success");
-      setTimeout(() => navigate(getHomePath(ROLE_INSTRUCTOR), { replace: true }), 600);
+      triggerToast("Welcome back!", "success");
+      navigate(getHomePath(ROLE_INSTRUCTOR), { replace: true });
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
       if (!err?.response) {

@@ -39,11 +39,11 @@ const CreateCourse = () => {
 
     try {
       const response = await axios.post(`${API_BASE_URL}/courses`, payload, { headers: { Authorization: `Bearer ${token}` } });
-      triggerToast("Course Created Successfully! 🎉 Redirecting...", "success");
+      triggerToast("Course Created Successfully! Redirecting...", "success");
 
       setTimeout(() => {
         navigate(`/dashboard/course/${response.data.id}/builder`);
-      }, 2000);
+      }, 250);
 
     } catch (error: any) {
       console.error(error);

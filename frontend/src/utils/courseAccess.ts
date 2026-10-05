@@ -3,7 +3,7 @@ import API_BASE_URL from "../config";
 
 /**
  * Resolve where a logged-in student should go for a shared course id.
- * Enrolled → course modules (player). Otherwise → learning/explore with that course highlighted.
+ * Uses lightweight /access (not the full player payload) so redirects stay fast.
  */
 export async function resolveStudentCoursePath(
   courseId: string | number,
@@ -11,17 +11,21 @@ export async function resolveStudentCoursePath(
 ): Promise<string> {
   const id = String(courseId);
   try {
-    await axios.get(`${API_BASE_URL}/courses/${id}/player`, {
+    const res = await axios.get(`${API_BASE_URL}/courses/${id}/access`, {
       headers: { Authorization: `Bearer ${token}` },
+      timeout: 6000,
     });
-    // Open modules / lessons for this course
-    return `/course/${id}/player`;
-  } catch (err: any) {
-    const status = err?.response?.status;
-    // Not enrolled / trial expired → courses page so they can unlock & learn
-    if (status === 402 || status === 403 || status === 404) {
-      return `/student-dashboard?course=${id}&tab=explore`;
+    if (res.data?.can_play) {
+      return `/course/${id}/player`;
     }
-    return `/student-dashboard?course=${id}&tab=learning`;
+    return `/student-dashboard?course=${id}&tab=explore`;
+  } catch {
+    // On network/timeout, open player — CoursePlayer will bounce if needed
+    return `/course/${id}/player`;
   }
+}
+
+/** Instant path when we already know the student should open modules. */
+export function studentPlayerPath(courseId: string | number): string {
+  return `/course/${String(courseId)}/player`;
 }

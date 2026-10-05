@@ -1184,6 +1184,38 @@ async def publish_course(course_id: int, db: AsyncSession = Depends(get_db), cur
         await db.commit()
     return {"message": "Published"}
 
+@app.get("/api/v1/courses/{course_id}/access")
+async def course_access(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Lightweight enrollment check for share/login redirects.
+    Avoids loading the full player payload (modules + lessons).
+    """
+    if current_user.role == "instructor":
+        return {"can_play": True, "reason": "instructor"}
+
+    enrol_res = await db.execute(
+        select(models.Enrollment).where(
+            models.Enrollment.user_id == current_user.id,
+            models.Enrollment.course_id == course_id,
+        )
+    )
+    enrollment = enrol_res.scalars().first()
+    if not enrollment:
+        return {"can_play": False, "reason": "not_enrolled"}
+
+    if (
+        enrollment.enrollment_type == "trial"
+        and enrollment.expiry_date
+        and datetime.utcnow() > enrollment.expiry_date
+    ):
+        return {"can_play": False, "reason": "trial_expired"}
+
+    return {"can_play": True, "reason": "enrolled", "enrollment_type": enrollment.enrollment_type}
+
 @app.get("/api/v1/library/items")
 async def list_library_items(
     q: Optional[str] = None,

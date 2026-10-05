@@ -401,8 +401,8 @@ const CourseBuilder = () => {
         try {
             const token = localStorage.getItem("token");
             await axios.patch(`${API_BASE_URL}/courses/${courseId}/publish`, {}, { headers: { Authorization: `Bearer ${token}` } });
-            triggerToast("🎉 Course Published! It is now live.", "success");
-            setTimeout(() => navigate("/dashboard/courses"), 2000);
+            triggerToast("Course Published! It is now live.", "success");
+            setTimeout(() => navigate("/dashboard/courses"), 300);
         } catch (err) { triggerToast("Error publishing course.", "error"); } finally { setIsPublishing(false); }
     };
 

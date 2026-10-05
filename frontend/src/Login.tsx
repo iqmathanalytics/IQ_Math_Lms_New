@@ -11,7 +11,6 @@ import {
 import BrandLogo from "./components/BrandLogo";
 import TechAuthBackground from "./components/TechAuthBackground";
 import { getHomePath, ROLE_STUDENT, saveSession } from "./utils/session";
-import { resolveStudentCoursePath } from "./utils/courseAccess";
 
 // 🔥 FIREBASE IMPORTS
 import { initializeApp, getApp, getApps } from "firebase/app";
@@ -115,14 +114,19 @@ const Login = () => {
   // ✅ API URL FROM ENV
   const API_URL = API_BASE_URL;
 
-  const redirectAfterStudentLogin = async (token: string) => {
+  const redirectAfterStudentLogin = async (_token: string) => {
     if (shareCourseId) {
-      const dest = await resolveStudentCoursePath(shareCourseId, token);
-      navigate(dest, { replace: true });
+      navigate(`/course/${shareCourseId}/player`, { replace: true });
       return;
     }
     navigate(getHomePath(ROLE_STUDENT), { replace: true });
   };
+
+  // Warm Render API while user types credentials (cuts cold-start delay)
+  useEffect(() => {
+    const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+    fetch(`${origin}/health`, { mode: "cors", cache: "no-store" }).catch(() => {});
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFormData({ ...formData, [e.target.name]: e.target.value }); };
   const triggerToast = (message: string, type: "success" | "error" = "success") => { setToast({ show: true, message, type }); setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000); };
@@ -333,10 +337,8 @@ const Login = () => {
           return;
         }
         saveSession(res.data.access_token, ROLE_STUDENT);
-        triggerToast("Login Successful! Redirecting...", "success");
-        setTimeout(() => {
-          void redirectAfterStudentLogin(res.data.access_token);
-        }, 600);
+        triggerToast("Login Successful!", "success");
+        void redirectAfterStudentLogin(res.data.access_token);
       } catch (err: any) {
         triggerToast(err.response?.data?.detail || "Authentication failed. Check credentials.", "error");
       } finally {

@@ -1380,6 +1380,12 @@ const CoursePlayer = () => {
             } catch (err: any) {
                 console.error(err);
 
+                if (err.response?.status === 403 || err.response?.status === 404) {
+                    // Not enrolled — send to explore so they can unlock
+                    navigate(`/student-dashboard?course=${courseId}&tab=explore`, { replace: true });
+                    return;
+                }
+
                 if (err.response?.status === 402) {
                     setIsTrialExpired(true);
                     // ✅ NEW: Fetch basic details (title/price) since player API failed

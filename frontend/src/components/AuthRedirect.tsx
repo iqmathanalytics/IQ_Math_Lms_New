@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   getHomePath,
@@ -9,7 +8,6 @@ import {
   ROLE_INSTRUCTOR,
   ROLE_STUDENT,
 } from "../utils/session";
-import { resolveStudentCoursePath } from "../utils/courseAccess";
 
 /** Protects student/instructor pages; sends wrong role to their home; no session → correct login portal. */
 export const ProtectedRoute = ({
@@ -43,7 +41,7 @@ export const PublicOnlyRoute = ({ children }: { children: any }) => {
 
   // Student already logged in + share deep-link → resolve course destination
   if (isStudent(session.role) && courseId && location.pathname === "/login") {
-    return <StudentCourseBounce courseId={courseId} token={session.token} />;
+    return <StudentCourseBounce courseId={courseId} />;
   }
 
   // Student on admin-login (or instructor on student login) → own home
@@ -57,29 +55,9 @@ export const PublicOnlyRoute = ({ children }: { children: any }) => {
   return <Navigate to={getHomePath(session.role)} replace />;
 };
 
-/** Async bounce for already-authenticated students hitting /login?course= */
-const StudentCourseBounce = ({ courseId, token }: { courseId: string; token: string }) => {
-  const [to, setTo] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const dest = await resolveStudentCoursePath(courseId, token);
-      if (!cancelled) setTo(dest);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [courseId, token]);
-
-  if (!to) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm">
-        Opening your course…
-      </div>
-    );
-  }
-  return <Navigate to={to} replace />;
+/** Instant bounce for already-authenticated students hitting /login?course= */
+const StudentCourseBounce = ({ courseId }: { courseId: string }) => {
+  return <Navigate to={`/course/${courseId}/player`} replace />;
 };
 
 export const FallbackRoute = () => {
